@@ -3,18 +3,18 @@ import time
 from datetime import datetime
 import app_guard_scanner
 
-def generate_report(data):
+def generate_report(data, output_dir="outputs"):
     """
     生成 AppGuard 移动应用隐私合规高保真存证报告 (HTML)
     支持: 静态代码 (Static) / 动态硬件沙箱 (Dynamic) / 动静双轨交叉存证 (Hybrid)
     包含: 第三方 SDK 责任穿透大盘 + 工信部合规修复代码补丁库
     """
-    os.makedirs("outputs", exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     pkg = data.get("package_name", "unknown_app")
     audit_type = data.get("audit_type", "static")
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"Compliance_Report_{pkg}_{audit_type}_{ts}.html"
-    filepath = os.path.join("outputs", filename)
+    filepath = os.path.join(output_dir, filename)
 
     app_name = data.get("app_name", pkg)
     score = data.get("compliance_score", 85)
@@ -282,6 +282,9 @@ def generate_report(data):
             </div>
             """
 
+        score_ded_str = "核算扣除: 0 分 (已豁免)" if (r.get("framework_internal_only") or r.get("points") == 0) else f"核算扣除: -{r.get('points', 10)} 分"
+        score_ded_color = "#10b981" if (r.get("framework_internal_only") or r.get("points") == 0) else "#f87171"
+
         findings_html += f"""
         <div class="section-card finding-item">
             <div class="finding-top">
@@ -291,8 +294,8 @@ def generate_report(data):
                     <span style="font-size:12px;color:#94a3b8;font-family:monospace;">[{r.get('category', '未归类')}]</span>
                     {cross_badge}
                 </div>
-                <div style="font-size:13px;font-family:monospace;color:#f87171;font-weight:bold;">
-                    核算扣除: -{r.get('points', 10)} 分 | 捕获调用: {f.get('count', 1)} 处
+                <div style="font-size:13px;font-family:monospace;color:{score_ded_color};font-weight:bold;">
+                    {score_ded_str} | 捕获调用: {f.get('count', 1)} 处
                 </div>
             </div>
            <div style="font-size:13px;color:#cbd5e1;margin:10px 0;line-height:1.6;">

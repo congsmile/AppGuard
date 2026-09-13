@@ -574,22 +574,56 @@ def identify_culprit(caller_class):
 
 def is_benign_framework_call(caller_class, caller_method, target_api):
     """
-    识别 AndroidX/Google 官方框架内部的已知良性向下兼容实现 (如夜间模式日落日出计算、长按粘贴菜单等)
-    避免将官方系统级组件的向下兼容调用错误扣在应用自研业务头上造成假阳性误报
+    识别 AndroidX/Google Material/Kotlin 等官方系统框架内部的已知良性向下兼容实现
+    包括夜间模式日落日出计算 (TwilightManager)、系统级长按粘贴与剪贴板分发、前台服务向下兼容分发等。
+    避免将官方系统组件与基础扩展库的良性向下兼容调用错误扣在应用业务头上造成假阳性误报。
     """
-    c = caller_class.replace(".", "/")
-    m = caller_method
-    if ("androidx/appcompat/widget/AppCompatReceiveContentHelper" in c or 
-        "androidx/core/view/ContentInfoCompat" in c or
-        ("androidx/appcompat/widget" in c and "Paste" in m)):
-        if "getPrimaryClip" in target_api:
-            return True
-    if ("TwilightManager" in c or "androidx/appcompat/app" in c):
-        if "Location" in target_api or "getLastKnownLocation" in target_api:
-            return True
-    if "androidx/core/content" in c:
+    c = caller_class.strip("L;").replace(".", "/")
+    m = caller_method or ""
+    
+    # 检查是否属于官方系统兼容库/官方基础标准库
+    is_official = False
+    for prefix in OFFICIAL_FRAMEWORKS.keys():
+        if is_prefix_match(c, prefix):
+            is_official = True
+            break
+            
+    if is_official:
+        # 1. 剪贴板良性向下兼容 (AndroidX / Google Material 文本长按粘贴、选区菜单、输入控件剪贴板存取)
+        if any(kw in target_api for kw in ["getPrimaryClip", "hasPrimaryClip", "getPrimaryClipDescription"]):
+            if any(pkg in c for pkg in [
+                "androidx/appcompat/widget",
+                "androidx/core/view",
+                "android/support",
+                "com/google/android/material"
+            ]) or "Paste" in m or "Clipboard" in c or "ReceiveContent" in c:
+                return True
+                
+        # 2. 位置服务良性兼容 (夜间日落日出计算 TwilightManager、暗黑模式自动切换等)
+        if any(kw in target_api for kw in ["Location", "getLastKnownLocation", "requestSingleUpdate"]):
+            if any(pkg in c for pkg in [
+                "TwilightManager",
+                "androidx/appcompat",
+                "android/support",
+                "com/google/android/material"
+            ]):
+                return True
+                
+        # 3. 前台服务启动向下兼容 (ContextCompat / WorkManager / 协程生命周期任务调度)
         if "startForegroundService" in target_api:
-            return True
+            if any(pkg in c for pkg in [
+                "androidx/core",
+                "android/support",
+                "androidx/work",
+                "kotlinx/coroutines"
+            ]):
+                return True
+                
+        # 4. 网络状态监测良性兼容 (WorkManager 约束条件追踪器 / Core 网络状态广播接收)
+        if any(kw in target_api for kw in ["NetworkInfo", "getNetworkCapabilities", "getAllNetworks", "getActiveNetwork"]):
+            if any(pkg in c for pkg in ["androidx/work", "androidx/core"]):
+                return True
+
     return False
 
 def build_sdk_attribution(findings):
@@ -878,27 +912,48 @@ def run_audit(apk_path):
     print(f"    - 风险等级: {color_code}{risk_level}{reset_color}")
     if is_fused:
         print(f"    - \033[91m[!] {fuse_reason}\033[0m")
-    print(f"    - 命中违规规则数: {len(findings)}")
+    deduct_findings = [f for f in findings if not f.get("rule", {}).get("framework_internal_only")]
+    exempt_findings = [f for f in findings if f.get("rule", {}).get("framework_internal_only")]
+    print(f"    - 检出敏感行为: {len(findings)} 项 (实际违规扣分: {len(deduct_findings)} 项, 官方系统框架良性兼容·已豁免: {len(exempt_findings)} 项)")
     print(f"    - 责任穿透: 宿主自研 {sdk_attribution['host_pct']}% | 官方系统框架 {sdk_attribution.get('framework_pct', 0)}% | 商业 SDK {sdk_attribution['sdk_pct']}% (涉及 {sdk_attribution['sdk_count']} 款 SDK/组件)")
     print(f"    - 四维分项健康度:")
     for dim_k, dim_v in dimensions.items():
         print(f"      · {dim_v['name']}: {dim_v['score']}/{dim_v['weight']} (扣除 {dim_v['deduction']} 分)")
 
-    print(f"\n{'-'*70}")
-    print(f"{'违规项 / 责任主体':<35} | {'危险等级':<10} | {'调用次数':<8} | {'核算扣分':<8}")
-    print(f"{'-'*70}")
+    if deduct_findings:
+        print(f"\n{'-'*75}")
+        print(f"【实际违规扣分项】(共 {len(deduct_findings)} 项，计入最终评分扣减)")
+        print(f"{'核查规则 / 违规项':<32} | {'危险等级':<10} | {'调用次数':<8} | {'核算扣分':<10}")
+        print(f"{'-'*75}")
+        for f in deduct_findings:
+            r = f["rule"]
+            culprits = set([d["culprit"] for d in f["details"]])
+            culprit_str = ", ".join(culprits)
+            print(f"{r['name']:<30} | {r['severity']:<10} | {f['count']:<8} | -{r['points']}分")
+            print(f"  └─ 责任主体: {culprit_str}")
+            for d in f["details"][:2]:
+                print(f"     [调用点] {d['caller_class']}::{d['caller_method']} -> {d['target_api']}")
+            if len(f["details"]) > 2:
+                print(f"     [+] 其余 {len(f['details'])-2} 处调用详见 HTML 完整报告")
+            print()
 
-    for f in findings:
-        r = f["rule"]
-        culprits = set([d["culprit"] for d in f["details"]])
-        culprit_str = ", ".join(culprits)
-        print(f"{r['name']:<30} | {r['severity']:<10} | {f['count']:<8} | -{r['points']}分")
-        print(f"  └─ 责任来源: {culprit_str}")
-        for d in f["details"][:2]:
-            print(f"     [调用点] {d['caller_class']}::{d['caller_method']} -> {d['target_api']}")
-        if len(f["details"]) > 2:
-            print(f"     [+] 其余 {len(f['details'])-2} 处调用详见 HTML 完整报告")
-        print()
+    if exempt_findings:
+        print(f"{'-'*75}")
+        print(f"【官方系统框架良性兼容·已豁免提示项】(共 {len(exempt_findings)} 项，不扣分)")
+        print(f"{'核查规则 / 兼容项':<32} | {'风险归属':<10} | {'调用次数':<8} | {'核算状态':<10}")
+        print(f"{'-'*75}")
+        for f in exempt_findings:
+            r = f["rule"]
+            culprits = set([d["culprit"] for d in f["details"]])
+            culprit_str = ", ".join(culprits)
+            print(f"{r['name']:<30} | {'官方兼容':<10} | {f['count']:<8} | 0分 (已豁免)")
+            print(f"  └─ 归属组件: {culprit_str}")
+            print(f"  └─ 豁免说明: {r.get('advisory_note', '仅在官方系统兼容库内部向下兼容链路中调用，已依据穿透模型豁免')}")
+            for d in f["details"][:2]:
+                print(f"     [兼容调用] {d['caller_class']}::{d['caller_method']} -> {d['target_api']}")
+            if len(f["details"]) > 2:
+                print(f"     [+] 其余 {len(f['details'])-2} 处调用详见 HTML 完整报告")
+            print()
 
     print("[4/4] 正在生成《移动应用隐私合规与SDK风险体检报告 (HTML)》...")
     report_path = generate_html_report(apk_path, app_name, package_name, target_sdk, permissions, compliance_score, risk_level, findings, time.time() - start_time, dimensions, is_fused, fuse_reason, sdk_attribution)
@@ -923,9 +978,9 @@ def run_audit(apk_path):
         "elapsed": round(time.time() - start_time, 2)
     }
 
-def generate_html_report(apk_path, app_name, package_name, target_sdk, permissions, score, risk_level, findings, elapsed, dimensions=None, is_fused=False, fuse_reason="", sdk_attribution=None):
-    os.makedirs("outputs", exist_ok=True)
-    report_file = os.path.join("outputs", f"Compliance_Report_{package_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html")
+def generate_html_report(apk_path, app_name, package_name, target_sdk, permissions, score, risk_level, findings, elapsed, dimensions=None, is_fused=False, fuse_reason="", sdk_attribution=None, output_dir="outputs"):
+    os.makedirs(output_dir, exist_ok=True)
+    report_file = os.path.join(output_dir, f"Compliance_Report_{package_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html")
     
     if sdk_attribution is None:
         sdk_attribution = build_sdk_attribution(findings)
@@ -948,16 +1003,32 @@ def generate_html_report(apk_path, app_name, package_name, target_sdk, permissio
         badge_cls = "badge-critical" if sev == "critical" else ("badge-high" if sev == "high" else "badge-medium")
         severity_badge = f'<span class="badge {badge_cls}">{r["severity"]}</span>'
         
+        cross_badge = ""
+        if r.get("framework_internal_only"):
+            cross_badge = '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:rgba(16,185,129,0.2);color:#10b981;border:1px solid rgba(16,185,129,0.4);margin-left:8px;">[官方框架良性兼容·豁免扣分]</span>'
+            score_text = f"扣减分值: 0 分 (已豁免) · 捕获调用: {f['count']} 处"
+            score_color = "#10b981"
+        else:
+            score_text = f"扣减分值: -{r.get('points', r.get('calculated_points', 5))} 分 · 调用次数: {f['count']} 处"
+            score_color = "var(--danger)"
+
         rows = ""
         for d in f["details"]:
+            culprit_str = d['culprit']
+            if d.get("is_framework_internal"):
+                culprit_str = f"<span style='color:#10b981;'>[官方兼容]</span> {culprit_str}"
             rows += f"""
             <tr>
-                <td><code>{d['culprit']}</code></td>
+                <td><code>{culprit_str}</code></td>
                 <td><code>{d['caller_class']}<br>&nbsp;└─&gt; {d['caller_method']}</code></td>
                 <td><code style="color:var(--accent-blue);">{d['target_api']}</code></td>
                 <td><code>{d['offset']}</code></td>
             </tr>
             """
+
+        advisory_html = ""
+        if r.get("advisory_note"):
+            advisory_html = f"""<div style="margin:8px 0 12px 0;padding:8px 12px;border-radius:8px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);font-size:12px;color:#a7f3d0;line-height:1.6;"><strong>系统兼容免责提示：</strong>{r.get('advisory_note')}</div>"""
 
         policy_tag = f'<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;font-family:monospace;"><strong>法规条款：</strong>{r.get("policy_ref", "工信部信管函〔2020〕164号")}</div>' if r.get("policy_ref") else ""
         code_patch_html = ""
@@ -976,18 +1047,20 @@ def generate_html_report(apk_path, app_name, package_name, target_sdk, permissio
         findings_html += f"""
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div>
+                <div style="display: flex; align-items: center; flex-wrap: wrap;">
                     {severity_badge}
                     <strong style="font-size: 15px; margin-left: 8px;">{r['name']}</strong>
                     <span style="color: var(--text-sub); font-size: 12px; margin-left: 6px;">({r['category']})</span>
+                    {cross_badge}
                 </div>
-                <div style="font-family: ui-monospace, monospace; color: var(--danger); font-weight: 700;">
-                    扣减分值: -{r.get('points', r.get('calculated_points', 5))} 分 · 调用次数: {f['count']} 处
+                <div style="font-family: ui-monospace, monospace; color: {score_color}; font-weight: 700;">
+                    {score_text}
                 </div>
             </div>
             <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">
                 {r['desc']}
             </div>
+            {advisory_html}
             <div class="remediation-box">
                 {policy_tag}
                 <strong>【工信部整改指引】:</strong> {r.get('remediation_principle', r['remediation'])}
@@ -1046,16 +1119,18 @@ def generate_html_report(apk_path, app_name, package_name, target_sdk, permissio
     <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div style="font-size:13px;font-weight:bold;">
-                责任切分：宿主自研业务 <strong>{sdk_attribution.get('host_pct', 0)}%</strong> vs 第三方 SDK <strong>{sdk_attribution.get('sdk_pct', 0)}%</strong>
+                责任切分：自研业务 <strong>{sdk_attribution.get('host_pct', 0)}%</strong> | 官方系统框架 <strong>{sdk_attribution.get('framework_pct', 0)}%</strong> | 商业第三方SDK <strong>{sdk_attribution.get('sdk_pct', 0)}%</strong>
             </div>
             <div style="font-size:12px;color:#94a3b8;">识别接入 SDK: {sdk_attribution.get('sdk_count', 0)} 家</div>
         </div>
-        <div style="width:100%;height:10px;border-radius:6px;background:#334155;overflow:hidden;display:flex;margin-bottom:14px;">
-            <div style="background:#38bdf8;width:{sdk_attribution.get('host_pct', 50)}%;height:100%;" title="自研业务"></div>
-            <div style="background:#f43f5e;width:{sdk_attribution.get('sdk_pct', 50)}%;height:100%;" title="第三方SDK"></div>
+        <!-- 三维责任切分条 (自研业务 / 官方系统兼容框架 / 商业第三方SDK) -->
+        <div style="width:100%;height:12px;border-radius:6px;background:#1e293b;overflow:hidden;display:flex;margin-bottom:14px;">
+            <div style="background:linear-gradient(90deg, #0284c7, #38bdf8);width:{sdk_attribution.get('host_pct', 0)}%;height:100%;" title="宿主自研业务: {sdk_attribution.get('host_pct', 0)}%"></div>
+            <div style="background:linear-gradient(90deg, #059669, #10b981);width:{sdk_attribution.get('framework_pct', 0)}%;height:100%;" title="官方系统框架: {sdk_attribution.get('framework_pct', 0)}%"></div>
+            <div style="background:linear-gradient(90deg, #e11d48, #fb7185);width:{sdk_attribution.get('sdk_pct', 0)}%;height:100%;" title="商业第三方SDK: {sdk_attribution.get('sdk_pct', 0)}%"></div>
         </div>
         <div style="font-size:12px;color:#cbd5e1;margin-bottom:14px;background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
-            <strong>法证穿透结论：</strong>{sdk_attribution.get('accountability_verdict', '')}
+            <strong>合规穿透审计意见：</strong>{sdk_attribution.get('accountability_verdict', '')}
         </div>
         <table>
             <thead>

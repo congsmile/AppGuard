@@ -10,7 +10,7 @@ class AndroidDynamicSandbox:
     """
     AppGuard 边缘真机硬件沙箱与动态行为探针引擎
     在真实 Android 终端上静默拉起应用实例，通过 AppOps 权限审计、
-    Logcat 运行日志与多模态交互刺激，实时捕获运行时隐私违规铁证。
+    Logcat 运行日志与多模态交互刺激，在生命周期各阶段（启动前基线、启动后窗口期、测试结束）执行分阶段快照与合规证据审计。
     """
     def __init__(self, adb_bin="adb", serial=""):
         self.adb_bin = adb_bin

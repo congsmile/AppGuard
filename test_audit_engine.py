@@ -1,5 +1,7 @@
 import unittest
+import os
 import time
+import tempfile
 from datetime import datetime
 import app_guard_scanner
 import sandbox_runner
@@ -226,7 +228,7 @@ class TestAuditEngine(unittest.TestCase):
         self.assertEqual(comp_score, 80.0, "沙箱不可用时混合评分应平稳回退至静态分")
 
     def test_report_generation_three_color_matrix(self):
-        """测试报告生成器三色责任条与技术审计报告完整性"""
+        """测试报告生成器三色责任条与技术审计报告完整性 (写入临时目录，避免污染 outputs 目录)"""
         sample_data = {
             "package_name": "com.test.sample",
             "app_name": "审计样本",
@@ -255,9 +257,157 @@ class TestAuditEngine(unittest.TestCase):
             "findings": [],
             "timeline": []
         }
-        rep_file = report_generator.generate_report(sample_data)
-        self.assertTrue(rep_file.startswith("Compliance_Report_"))
-        self.assertTrue(rep_file.endswith(".html"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            rep_file = report_generator.generate_report(sample_data, output_dir=tmp_dir)
+            self.assertTrue(rep_file.startswith("Compliance_Report_"))
+            self.assertTrue(rep_file.endswith(".html"))
+            full_path = os.path.join(tmp_dir, rep_file)
+            self.assertTrue(os.path.exists(full_path))
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("官方系统框架: 30.0%", content)
+            self.assertIn("宿主自研业务: 50.0%", content)
+            self.assertIn("商业第三方SDK: 20.0%", content)
+            self.assertIn("linear-gradient(90deg, #059669, #10b981)", content)
+
+    def test_cli_html_report_advisory_and_three_color_rendering(self):
+        """测试 CLI 报告路径下 generate_html_report 对官方兼容豁免徽章、免责提示与三色大盘的完整渲染"""
+        findings = [
+            {
+                "rule": {
+                    "id": "MIIT-10-CLIPBOARD",
+                    "name": "私自静默读取剪贴板信息",
+                    "category": "个人数据收集",
+                    "severity": "HIGH",
+                    "desc": "在未明示前读取剪贴板数据",
+                    "policy_ref": "工信部信管函〔2020〕164号 第四条",
+                    "remediation": "移除未明示前读取",
+                    "remediation_principle": "严禁在用户同意前调用",
+                    "framework_internal_only": True,
+                    "points": 0,
+                    "calculated_points": 0,
+                    "advisory_note": "【系统兼容提示】仅在 AndroidX/官方兼容库内部向下兼容链路中发现调用，已豁免扣分。"
+                },
+                "count": 1,
+                "details": [
+                    {
+                        "target_api": "ClipboardManager -> getPrimaryClip",
+                        "caller_class": "androidx.appcompat.widget.AppCompatReceiveContentHelper",
+                        "caller_method": "tryPerformPaste",
+                        "culprit": "AndroidX 官方支持库 (系统兼容组件)",
+                        "offset": "0x12",
+                        "is_framework_internal": True
+                    }
+                ]
+            }
+        ]
+        attr = app_guard_scanner.build_sdk_attribution(findings)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            rep_path = app_guard_scanner.generate_html_report(
+                apk_path="mock.apk",
+                app_name="测试样本",
+                package_name="com.test.sample",
+                target_sdk="34",
+                permissions=["android.permission.INTERNET"],
+                score=100,
+                risk_level="LOW (低风险)",
+                findings=findings,
+                elapsed=1.0,
+                sdk_attribution=attr,
+                output_dir=tmp_dir
+            )
+            self.assertTrue(os.path.exists(rep_path))
+            with open(rep_path, "r", encoding="utf-8") as f:
+                html = f.read()
+            self.assertIn("[官方框架良性兼容·豁免扣分]", html)
+            self.assertIn("系统兼容免责提示：", html)
+            self.assertIn("扣减分值: 0 分 (已豁免)", html)
+            self.assertIn("[官方兼容]", html)
+            self.assertIn("linear-gradient(90deg, #059669, #10b981)", html)
+            self.assertIn("合规穿透审计意见：", html)
+
+    def test_material_and_framework_benign_exemption(self):
+        """测试 Google Material 官方库、WorkManager 与协程等良性向下兼容调用的系统化识别与豁免"""
+        # 1. Google Material 组件长按粘贴剪贴板
+        is_mat_clip = app_guard_scanner.is_benign_framework_call(
+            "com.google.android.material.textfield.EndCompoundLayout",
+            "tryPaste",
+            "ClipboardManager -> getPrimaryClip"
+        )
+        self.assertTrue(is_mat_clip, "Google Material 输入控件剪贴板操作应被识别为良性兼容")
+
+        # 2. AndroidX WorkManager 调度前台服务
+        is_work_fg = app_guard_scanner.is_benign_framework_call(
+            "androidx.work.impl.utils.WorkForeground",
+            "startForegroundService",
+            "Context -> startForegroundService"
+        )
+        self.assertTrue(is_work_fg, "WorkManager 前台服务兼容调度应被识别为良性兼容")
+
+        # 3. KotlinX 协程调度
+        is_coroutine_fg = app_guard_scanner.is_benign_framework_call(
+            "kotlinx.coroutines.DelayKt",
+            "delay",
+            "Context -> startForegroundService"
+        )
+        self.assertTrue(is_coroutine_fg, "KotlinX 协程标准调度应被识别为良性兼容")
+
+        # 4. 商业广告 SDK 偷跑剪贴板（严禁豁免）
+        is_ad_clip = app_guard_scanner.is_benign_framework_call(
+            "com.bytedance.sdk.openadsdk.core.ClipHelper",
+            "getPrimaryClip",
+            "ClipboardManager -> getPrimaryClip"
+        )
+        self.assertFalse(is_ad_clip, "商业广告 SDK 剪贴板调用绝对不可被豁免")
+
+        # 5. 宿主自研业务偷跑剪贴板（严禁豁免）
+        is_host_clip = app_guard_scanner.is_benign_framework_call(
+            "com.example.myapp.MainActivity",
+            "onCreate",
+            "ClipboardManager -> getPrimaryClip"
+        )
+        self.assertFalse(is_host_clip, "宿主应用自身剪贴板调用绝对不可被豁免")
+
+    def test_cli_findings_categorization(self):
+        """测试 CLI 审计结果对实际违规扣分项与官方框架豁免项的分组及核算统计"""
+        findings = [
+            {
+                "rule": {
+                    "id": "MIIT-01-DEVICE-ID",
+                    "name": "私自获取设备序列号与IMEI",
+                    "severity": "CRITICAL",
+                    "dimension": "dim_device",
+                    "base_deduction": 15,
+                    "max_deduction": 20,
+                    "framework_internal_only": False,
+                    "points": 15
+                },
+                "count": 1,
+                "details": [{"culprit": "宿主自研业务模块", "target_api": "getDeviceId", "caller_class": "A", "caller_method": "b", "offset": "0x1"}]
+            },
+            {
+                "rule": {
+                    "id": "MIIT-10-CLIPBOARD",
+                    "name": "私自静默读取剪贴板信息",
+                    "severity": "HIGH",
+                    "dimension": "dim_data",
+                    "base_deduction": 0,
+                    "max_deduction": 0,
+                    "framework_internal_only": True,
+                    "points": 0,
+                    "advisory_note": "官方兼容豁免"
+                },
+                "count": 2,
+                "details": [{"culprit": "AndroidX 官方支持库 (系统兼容组件)", "target_api": "getPrimaryClip", "caller_class": "X", "caller_method": "y", "offset": "0x2", "is_framework_internal": True}]
+            }
+        ]
+        deduct_findings = [f for f in findings if not f.get("rule", {}).get("framework_internal_only")]
+        exempt_findings = [f for f in findings if f.get("rule", {}).get("framework_internal_only")]
+
+        self.assertEqual(len(deduct_findings), 1)
+        self.assertEqual(len(exempt_findings), 1)
+        self.assertEqual(deduct_findings[0]["rule"]["points"], 15)
+        self.assertEqual(exempt_findings[0]["rule"]["points"], 0)
 
 if __name__ == "__main__":
     unittest.main()
