@@ -55,7 +55,7 @@ def generate_report(data):
         badge_bg = "rgba(239, 68, 68, 0.15)"
 
     type_titles = {
-        "static": ("静态代码逆向反编译 (AST/XRef)", "#38bdf8", "Androguard 4.1.4 字节码语义图谱"),
+        "static": ("静态代码逆向分析 (字节码/XRef)", "#38bdf8", "Androguard 4.1.4 字节码语义图谱"),
         "dynamic": ("端侧真机动态硬件沙箱 (Hardware Sandbox)", "#f59e0b", "HyperOS Android 16 Kernel 探针隔离"),
         "hybrid": ("动静双轨交叉存证矩阵 (Hybrid Matrix)", "#10b981", "工信部合规标准 · 动静双轨高保真存证")
     }
@@ -136,10 +136,14 @@ def generate_report(data):
     # 交叉验证结论区块
     cross_val_html = ""
     if cross_val or audit_type in ["dynamic", "hybrid"]:
-        acc = cross_val.get("accuracy", "97.8%")
+        dyn_cnt = cross_val.get("dynamic_confirmed", len(data.get("dynamic_violations", [])))
+        stat_cnt = cross_val.get("static_rules_scanned", len(findings))
+        if stat_cnt > 0:
+            calc_acc = f"{round((dyn_cnt / stat_cnt) * 100, 1)}%"
+        else:
+            calc_acc = "100.0%" if dyn_cnt == 0 else "N/A"
+        acc = cross_val.get("accuracy") or calc_acc
         verdict = cross_val.get("verdict", "沙箱真实捕获运行时越界调用，成功排除静态死代码误报，符合工信部合规检测与技术存证规范。")
-        dyn_cnt = cross_val.get("dynamic_confirmed", len(data.get("dynamic_violations", [])) or 3)
-        stat_cnt = cross_val.get("static_rules_scanned", len(findings) or 6)
         eliminated = max(0, stat_cnt - dyn_cnt)
         
         cross_val_html = f"""
@@ -610,7 +614,7 @@ def generate_report(data):
         <!-- 工信部红线违规明细 -->
         <div style="margin-top:32px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
             <h3 style="margin:0;font-size:18px;">工信部专项红线违规清单与修复补丁库 ({len(findings)} 项)</h3>
-            <span style="font-size:12px;color:var(--text-sub);">附带 AST 指令偏移与可运行代码补丁</span>
+            <span style="font-size:12px;color:var(--text-sub);">附带 Dalvik 字节码指令偏移与可运行合规补丁</span>
         </div>
         {findings_html if findings else '<div class="section-card" style="text-align:center;color:#10b981;font-weight:bold;">恭喜！未在目标应用中检出已知工信部红线违规调用。</div>'}
 

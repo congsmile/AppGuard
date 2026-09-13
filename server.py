@@ -47,7 +47,7 @@ def query_adb_device():
                     if p.startswith("model:"):
                         model = p.split(":", 1)[1]
                 devices.append({"serial": serial, "model": model})
-        
+
         if not devices:
             return {
                 "connected": False,
@@ -58,16 +58,16 @@ def query_adb_device():
                 "android_version": "N/A",
                 "is_root": False
             }
-            
+
         dev = devices[0]
         # Query Android version
         p_ver = subprocess.run([ADB_BIN, "-s", dev["serial"], "shell", "getprop", "ro.build.version.release"], capture_output=True, text=True, timeout=2)
         dev["android_version"] = p_ver.stdout.strip() or "16"
-        
+
         # Query Model name
         p_mname = subprocess.run([ADB_BIN, "-s", dev["serial"], "shell", "getprop", "ro.product.model"], capture_output=True, text=True, timeout=2)
         dev["model_name"] = p_mname.stdout.strip() or dev["model"]
-        
+
         # Query Root status
         p_root = subprocess.run([ADB_BIN, "-s", dev["serial"], "shell", "su -c 'id' 2>/dev/null || id"], capture_output=True, text=True, timeout=2)
         dev["is_root"] = "uid=0" in p_root.stdout
@@ -85,20 +85,24 @@ def query_adb_device():
         }
 
 def generate_dynamic_timeline(findings, package_name):
+    """
+    静态调用流时序推演 (基于 Dalvik 字节码调用图与入口组件拓扑)
+    用于纯静态分析模式下的潜在调用链时序推演，严谨标注为静态推演结论。
+    """
     timeline = [
         {
-            "time": "T+0.02s",
-            "stage": "进程创建",
-            "event": f"Zygote 孵化进程，包名 [{package_name}]，分配 Linux 沙箱独立 UID",
+            "time": "T+0.05s",
+            "stage": "组件入口装载 (静态推演)",
+            "event": f"解析 Application.attachBaseContext() 与入口组件，识别包名 [{package_name}] 初始化链路",
             "level": "INFO",
-            "verdict": "正常"
+            "verdict": "正常：基础架构解析就绪"
         },
         {
             "time": "T+0.15s",
-            "stage": "组件装载",
-            "event": "Application.attachBaseContext() 执行，初始化第三方 SDK 框架与插件",
+            "stage": "第三方组件初始化 (静态推演)",
+            "event": "扫描第三方 SDK 初始化入口与生命周期拦截点",
             "level": "INFO",
-            "verdict": "正常"
+            "verdict": "正常：SDK 依赖图谱就绪"
         }
     ]
 
@@ -106,118 +110,118 @@ def generate_dynamic_timeline(findings, package_name):
 
     if "MIIT-01-DEVICE-ID" in rule_map:
         timeline.append({
-            "time": "T+0.18s",
-            "stage": "启动期指纹探测",
-            "event": "调用 TelephonyManager.getDeviceId() / getImei() 获取设备硬件序列号 (此时用户隐私协议弹窗尚未渲染)",
+            "time": "T+0.20s",
+            "stage": "硬件标识调用流 (静态推演)",
+            "event": "检出 TelephonyManager.getDeviceId() / getImei() 硬件序列号调用点 (静态 XRef)",
             "level": "CRITICAL",
-            "verdict": "高危违规：在用户明示同意前非法窃取硬件唯一标识"
+            "verdict": "合规风险：静态包含不可逆硬件序列号调用，需防范首屏未明示前触发"
         })
 
     if "MIIT-02-MAC-NETWORK" in rule_map:
         timeline.append({
-            "time": "T+0.24s",
-            "stage": "网络协议栈初始化",
-            "event": "遍历 NetworkInterface.getHardwareAddress() 读取 Wi-Fi MAC 地址与 BSSID",
+            "time": "T+0.25s",
+            "stage": "网络指纹读取 (静态推演)",
+            "event": "检出 NetworkInterface.getHardwareAddress() 读取 MAC 地址与 BSSID 调用点",
             "level": "HIGH",
-            "verdict": "违规：私自读取网络物理地址用于跨应用硬追踪"
+            "verdict": "合规风险：包含物理网络标识调用，需核实是否存在跨应用强追踪"
         })
 
     if "MIIT-03-PHONE-NUMBER" in rule_map:
         timeline.append({
             "time": "T+0.30s",
-            "stage": "身份标识索取",
-            "event": "调用 TelephonyManager.getLine1Number() 尝试直接索取底层 SIM 本机手机号码",
+            "stage": "手机号索取 (静态推演)",
+            "event": "检出 TelephonyManager.getLine1Number() 读取底层 SIM 手机号调用点",
             "level": "HIGH",
-            "verdict": "严重违规：未经显式二次确认私自调用底层接口获取手机号"
+            "verdict": "高危风险：严禁未经二次确认直接索取手机号"
         })
 
     if "MIIT-10-CLIPBOARD" in rule_map:
         timeline.append({
-            "time": "T+0.38s",
-            "stage": "主线程冷启动",
-            "event": "调用 ClipboardManager.getPrimaryClip() 读取剪贴板 (此时用户无主动粘贴行为)",
+            "time": "T+0.35s",
+            "stage": "剪贴板调用 (静态推演)",
+            "event": "检出 ClipboardManager.getPrimaryClip() 读取系统剪贴板调用点",
             "level": "MEDIUM",
-            "verdict": "违规：静默监听系统剪贴板，涉嫌淘口令窃取与跨端数据画像"
+            "verdict": "合规风险：包含剪贴板读取，需确保仅在用户主动粘贴时触发"
         })
 
     if "MIIT-12-DYNAMIC-DEX" in rule_map:
         timeline.append({
-            "time": "T+0.45s",
-            "stage": "动态模块装载",
-            "event": "调用 DexClassLoader/PathClassLoader.loadClass() 动态反射加载外部字节码",
+            "time": "T+0.40s",
+            "stage": "动态类加载 (静态推演)",
+            "event": "检出 DexClassLoader / PathClassLoader 动态类加载调用点",
             "level": "MEDIUM",
-            "verdict": "合规风险：存在动态下发未经备案代码以逃逸静态审查的隐患"
+            "verdict": "安全风险：包含动态外部类加载，需防范绕过监管审计"
         })
 
     if "MIIT-06-AUDIO-CAMERA" in rule_map:
         timeline.append({
-            "time": "T+0.52s",
-            "stage": "后台硬件捕获",
-            "event": "调用 AudioRecord.startRecording() 或 Camera 底层捕获接口",
+            "time": "T+0.50s",
+            "stage": "麦克风与相机 (静态推演)",
+            "event": "检出 AudioRecord.startRecording() 或 Camera 底层硬件调用点",
             "level": "CRITICAL",
-            "verdict": "高危违规：在用户无感知状态下非法唤醒录音/拍照硬件流"
+            "verdict": "高危风险：包含录音/拍照敏感硬件接口，必须在前台明示且经用户授权"
         })
 
     timeline.append({
-        "time": "T+0.65s",
-        "stage": "首屏渲染",
-        "event": "MainActivity.onCreate() 完成绘制，首屏/开屏广告位启动加载",
+        "time": "T+0.60s",
+        "stage": "主界面交互入口 (静态推演)",
+        "event": "MainActivity.onCreate() 主活动入口加载",
         "level": "INFO",
-        "verdict": "正常"
+        "verdict": "正常：UI 结构就绪"
     })
 
     if "MIIT-04-SHAKE-SENSOR" in rule_map:
         timeline.append({
-            "time": "T+0.88s",
-            "stage": "开屏广告曝光",
-            "event": "注册 SensorManager.registerListener(TYPE_ACCELEROMETER) (默认上报率，未配置角速度滤波与主动摇晃门槛)",
+            "time": "T+0.75s",
+            "stage": "加速度传感器监听 (静态推演)",
+            "event": "检出 SensorManager.registerListener(TYPE_ACCELEROMETER) 加速度传感器监听点",
             "level": "HIGH",
-            "verdict": "严重违规：开屏‘摇一摇’高频监听，极易导致日常手持微晃诱发强制跳转"
+            "verdict": "合规风险：开屏摇一摇需严格遵从 T/TAF 077.1 规范（≥35°/3s 门槛）"
         })
 
     if "MIIT-05-SILENT-DOWNLOAD" in rule_map:
         timeline.append({
-            "time": "T+1.10s",
-            "stage": "广告行为响应",
-            "event": "调用 DownloadManager.enqueue() 向系统下载服务静默提交 APK 安装包下载任务",
+            "time": "T+0.85s",
+            "stage": "静默下载机制 (静态推演)",
+            "event": "检出 DownloadManager.enqueue() 提交系统下载服务调用点",
             "level": "HIGH",
-            "verdict": "严重违规：诱导点击后未弹窗明示主体并私自触发静默下载"
+            "verdict": "高危违规：严禁在未获用户二次明示同意下静默下载 APK"
         })
 
     if "MIIT-11-STORAGE-PHOTO" in rule_map:
         timeline.append({
-            "time": "T+1.28s",
-            "stage": "存储访问穿透",
-            "event": "调用 Environment.getExternalStorageDirectory() 遍历公共存储目录与相册资源",
+            "time": "T+0.95s",
+            "stage": "全盘存储扫描 (静态推演)",
+            "event": "检出 Environment.getExternalStorageDirectory() 公共存储与相册遍历调用点",
             "level": "HIGH",
-            "verdict": "违规：逃逸 Android 分区存储机制，超范围检索全盘与相册"
+            "verdict": "合规风险：建议使用 Android PhotoPicker 替代全盘存储扫描"
         })
 
     if "MIIT-07-APP-LIST" in rule_map:
         timeline.append({
-            "time": "T+1.45s",
-            "stage": "后台数据同步",
-            "event": "调用 PackageManager.getInstalledPackages() 扫描本机已安装应用列表",
+            "time": "T+1.05s",
+            "stage": "应用列表扫描 (静态推演)",
+            "event": "检出 PackageManager.getInstalledPackages() 获取已安装应用调用点",
             "level": "HIGH",
-            "verdict": "违规：超范围收集用户软件安装列表"
+            "verdict": "合规风险：超范围读取已安装应用列表属于工信部高频通报红线"
         })
 
     if "MIIT-08-LOCATION" in rule_map:
         timeline.append({
-            "time": "T+1.58s",
-            "stage": "后台位置轮询",
-            "event": "调用 LocationManager.requestLocationUpdates() 在非导航主场景索取高精度经纬度",
+            "time": "T+1.15s",
+            "stage": "位置更新监听 (静态推演)",
+            "event": "检出 LocationManager.requestLocationUpdates() 经纬度定位调用点",
             "level": "HIGH",
-            "verdict": "违规：后台高频索取高精度定位"
+            "verdict": "合规风险：仅主营必要业务可申请前台定位，严禁后台超频轮询"
         })
 
     if "MIIT-09-AUTOSTART-WAKE" in rule_map:
         timeline.append({
-            "time": "T+1.72s",
-            "stage": "保活与全家桶协同",
-            "event": "调用 Context.startForegroundService() 或 JobScheduler 注册常驻保活与链式唤醒",
+            "time": "T+1.25s",
+            "stage": "后台常驻与保活 (静态推演)",
+            "event": "检出 ForegroundService / JobScheduler 保活与广播唤醒声明",
             "level": "MEDIUM",
-            "verdict": "合规隐患：频繁自启动与跨应用链式唤醒"
+            "verdict": "合规风险：需抑制频繁自启动与跨应用链式唤醒"
         })
 
     return timeline
@@ -225,44 +229,37 @@ def generate_dynamic_timeline(findings, package_name):
 def correlate_hybrid_findings(static_findings, dynamic_violations, timeline):
     """
     动静双轨交叉对齐引擎：
-    将静态 AST 代码调用点与端侧硬件沙箱实时探针进行因果对齐。
-    - 现场触发 (Confirmed): 静态存在调用点且沙箱毫秒级抓捕现行，排除死代码，置信状态确定 (High-Fidelity Confirmed)
-    - 潜在未激发 (Latent): 静态存在调用点但端侧监控期未触发（疑似死代码或特定前置条件）
+    将静态 Dalvik 字节码调用点与端侧硬件沙箱真实运行态探针进行事实对齐。
+    - 运行时确证 (Confirmed): 静态存在调用点且沙箱探针在运行期真实捕获调用，排除死代码，置信状态确立
+    - 静态潜在未触发 (Latent): 静态检测到调用点但在沙箱监控周期内未捕获系统服务调用（疑似冷代码或深层业务交互触发）
     """
-    confirmed_ids = set()
-    dyn_map = {}
-    for v in (dynamic_violations or []):
-        vid = v.get("rule_id", "")
-        dyn_map[vid] = v
-        if "DEVICE" in vid:
-            confirmed_ids.add("MIIT-01-DEVICE-ID")
-        if "SHAKE" in vid:
-            confirmed_ids.add("MIIT-04-SHAKE-SENSOR")
-            confirmed_ids.add("MIIT-03-SHAKE-SENSOR")
-        if "CLIPBOARD" in vid:
-            confirmed_ids.add("MIIT-10-CLIPBOARD")
-            confirmed_ids.add("MIIT-05-CLIPBOARD")
+    dyn_map = {v.get("rule_id", ""): v for v in (dynamic_violations or [])}
 
     for f in (static_findings or []):
         rid = f.get("rule", {}).get("id", "")
-        is_hit = rid in confirmed_ids or any(k in rid for k in ["DEVICE", "SHAKE", "CLIPBOARD"] if any(k in d_id for d_id in dyn_map))
-        if is_hit:
-            matched_v = None
+        matched_v = dyn_map.get(rid)
+        if not matched_v:
             for d_id, v_info in dyn_map.items():
-                if ("DEVICE" in rid and "DEVICE" in d_id) or ("SHAKE" in rid and "SHAKE" in d_id) or ("CLIPBOARD" in rid and "CLIPBOARD" in d_id):
+                if ("DEVICE" in rid and "DEVICE" in d_id) or \
+                   ("SHAKE" in rid and "SHAKE" in d_id) or \
+                   ("CLIPBOARD" in rid and "CLIPBOARD" in d_id) or \
+                   ("LOCATION" in rid and "LOCATION" in d_id) or \
+                   ("AUDIO" in rid and "AUDIO" in d_id):
                     matched_v = v_info
                     break
-            trigger_time = "T+0.28s" if "CLIPBOARD" in rid else ("T+0.35s" if "DEVICE" in rid else "T+1.15s")
+
+        if matched_v:
+            trigger_time = matched_v.get("trigger_time", "运行期")
             f["cross_status"] = "confirmed"
-            f["cross_label"] = "动静坐实·现行抓捕"
+            f["cross_label"] = "动静坐实·运行时复核"
             f["dynamic_trigger_time"] = trigger_time
-            f["dynamic_evidence"] = matched_v.get("evidence") if matched_v else f"端侧硬件沙箱在 {trigger_time} 毫秒级捕获底层系统服务调用"
-            f["verification_note"] = f"端侧硬件沙箱在协议弹窗前 ({trigger_time}) 现行抓捕真实调用，排除死代码误报，形成法证闭环铁证"
+            f["dynamic_evidence"] = matched_v.get("evidence", f"端侧硬件沙箱在 {trigger_time} 捕获底层系统服务调用")
+            f["verification_note"] = f"端侧硬件沙箱在 {trigger_time} 真实捕获调用（{matched_v.get('evidence', '')}），排除死代码误报，完成事实闭环。"
         else:
             f["cross_status"] = "latent"
-            f["cross_label"] = "静态潜在·未激发"
+            f["cross_label"] = "静态潜在·监控期未触发"
             f["dynamic_trigger_time"] = None
-            f["verification_note"] = f"静态逆向检测到 {f.get('count', 1)} 处调用链，但在端侧沙箱监控期未捕获真实调用（疑似死代码或深层非首屏业务）"
+            f["verification_note"] = f"静态逆向检出 {f.get('count', 1)} 处调用链，但在当前动态沙箱监控周期内未捕获活跃系统调用（可能属于深层业务交互触发或未激活模块）。"
 
     return static_findings
 
@@ -282,13 +279,13 @@ def api_device_apps():
     dev = query_adb_device()
     if not dev.get("connected"):
         return jsonify({"success": False, "error": "设备未连接"})
-    
+
     serial = dev["serial"]
     try:
         # 1. 一次性获取第三方包及其 base.apk 绝对路径
         res = subprocess.run([ADB_BIN, "-s", serial, "shell", "pm list packages -3 -f"], capture_output=True, text=True, timeout=8)
         lines = res.stdout.strip().splitlines()
-        
+
         path_to_pkg = {}
         ordered_pkgs = []
         for line in lines:
@@ -299,7 +296,7 @@ def api_device_apps():
                 path_to_pkg[path] = pkg
                 if pkg not in ordered_pkgs:
                     ordered_pkgs.append(pkg)
-        
+
         # 2. 批量单次 stat 获取各包真实体量 (0.1s 级并发)
         pkg_sizes = {}
         if path_to_pkg:
@@ -313,7 +310,7 @@ def api_device_apps():
                     pkg = path_to_pkg.get(path)
                     if pkg:
                         pkg_sizes[pkg] = round(size_bytes / (1024 * 1024), 2)
-        
+
         result_apps = []
         for pkg in ordered_pkgs:
             friendly_name = app_names_db.resolve_app_name(pkg)
@@ -383,14 +380,14 @@ def extract_and_package_targeted_payload(serial, remote_path, package_name, loca
     import zipfile, shutil
     dev_tmp = f"/data/local/tmp/appguard_{package_name}"
     local_extract_dir = os.path.join("work", f"stream_{package_name}_{int(time.time())}")
-    
+
     # 根据模式决定真机端抽取的 DEX 范围
     dex_pattern = "'classes.dex' 'classes2.dex' 'classes3.dex'" if audit_mode == "quick" else "'classes*.dex'"
-    
+
     # 1. 尝试在真机端执行 unzip 靶向抽取
     cmd_extract = f"rm -rf {dev_tmp} && mkdir -p {dev_tmp} && unzip -q -o {remote_path} {dex_pattern} 'AndroidManifest.xml' -d {dev_tmp}"
     res = subprocess.run([ADB_BIN, "-s", serial, "shell", cmd_extract], capture_output=True, text=True, timeout=20)
-    
+
     if res.returncode == 0:
         try:
             os.makedirs(local_extract_dir, exist_ok=True)
@@ -398,10 +395,10 @@ def extract_and_package_targeted_payload(serial, remote_path, package_name, loca
             p_stream = subprocess.Popen([ADB_BIN, "-s", serial, "exec-out", f"tar -czf - -C {dev_tmp} ."], stdout=subprocess.PIPE)
             subprocess.run(["tar", "-xzf", "-", "-C", local_extract_dir], stdin=p_stream.stdout, timeout=30)
             p_stream.wait()
-            
+
             # 清理真机临时目录
             subprocess.run([ADB_BIN, "-s", serial, "shell", f"rm -rf {dev_tmp}"], capture_output=True, timeout=5)
-            
+
             # 3. 本地合成轻量化核心载荷 APK
             dex_files = [f for f in os.listdir(local_extract_dir) if f.endswith(".dex")]
             if dex_files and os.path.exists(os.path.join(local_extract_dir, "AndroidManifest.xml")):
@@ -416,7 +413,7 @@ def extract_and_package_targeted_payload(serial, remote_path, package_name, loca
         except Exception as ex:
             print(f"[*] 流式提取异常，降级常规拉取: {ex}")
             shutil.rmtree(local_extract_dir, ignore_errors=True)
-    
+
     # 降级：常规全量 pull
     print(f"[*] 执行常规 ADB Pull: {remote_path} -> {local_target}")
     subprocess.run([ADB_BIN, "-s", serial, "pull", remote_path, local_target], capture_output=True, text=True, timeout=60)
@@ -431,7 +428,7 @@ def api_scan_local():
     package_name = data.get("package", "mark.via")
     if not os.path.exists(apk_path):
         return jsonify({"success": False, "error": f"找不到目标 APK: {apk_path}"})
-    
+
     clean_temp_apk = None
     try:
         target_scan_path = apk_path
@@ -474,7 +471,7 @@ def api_scan_local():
                 res["cross_validation"] = dyn_res.get("cross_validation", {})
                 res["device_profile"] = dyn_res.get("device_profile", {})
                 res["dynamic_score"] = dyn_res.get("dynamic_score", 100)
-                
+
                 if audit_type == "dynamic":
                     res["compliance_score"] = dyn_res.get("dynamic_score", 100)
                     res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
@@ -486,12 +483,15 @@ def api_scan_local():
                     res["compliance_score"] = round(static_score * 0.5 + dyn_score * 0.5, 1)
                     res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
                     res["findings"] = correlate_hybrid_findings(res.get("findings", []), res["dynamic_violations"], res["timeline"])
+                    total_rules = len(res["findings"])
                     confirmed_cnt = sum(1 for f in res["findings"] if f.get("cross_status") == "confirmed")
+                    confirm_rate = f"{round((confirmed_cnt / max(1, total_rules)) * 100, 1)}%" if total_rules > 0 else "100.0%"
                     res["hybrid_summary"] = {
-                        "total_rules": len(res["findings"]),
+                        "total_rules": total_rules,
                         "confirmed_count": confirmed_cnt,
-                        "latent_count": len(res["findings"]) - confirmed_cnt,
-                        "accuracy": "97.8%",
+                        "latent_count": total_rules - confirmed_cnt,
+                        "accuracy": confirm_rate,
+                        "confirmation_rate": confirm_rate,
                         "static_score": static_score,
                         "dynamic_score": dyn_score
                     }
@@ -518,31 +518,31 @@ def api_scan_local():
 def api_upload_and_scan():
     if "file" not in request.files:
         return jsonify({"success": False, "error": "未接收到上传的 APK 文件"})
-    
+
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"success": False, "error": "文件名为空"})
-    
+
     if not file.filename.lower().endswith(".apk"):
         return jsonify({"success": False, "error": "仅支持上传 .apk 格式文件"})
-    
+
     audit_type = request.form.get("audit_type", "static")
     audit_mode = request.form.get("mode", "deep")
-    
+
     safe_name = f"upload_{int(time.time())}_{file.filename}"
     save_path = os.path.join("work/uploads", safe_name)
     file.save(save_path)
-    
+
     clean_temp_apk = None
     installed_by_us = False
     package_name = "unknown_pkg"
     app_name = file.filename.replace(".apk", "")
-    
+
     try:
         file_size_mb = round(os.path.getsize(save_path) / (1024 * 1024), 2)
         md5_hash, sha256_hash = calculate_file_hash(save_path)
         payload_details = calculate_audit_payload_details(save_path)
-        
+
         # 快速提取目标 APK 的包名与应用名称
         try:
             from androguard.core.apk import APK
@@ -553,11 +553,11 @@ def api_upload_and_scan():
             print(f"[*] 快速解析 APK 清单告警: {apk_err}")
             package_name = package_name or "com.target.app"
             app_name = app_names_db.resolve_app_name(package_name) or app_name
-            
+
         dev = query_adb_device()
         device_connected = dev.get("connected", False)
         serial = dev.get("serial", "")
-        
+
         fallback_offline = False
         fallback_reason = ""
         actual_audit_type = audit_type
@@ -565,11 +565,11 @@ def api_upload_and_scan():
             fallback_offline = True
             fallback_reason = "未检测到物理真机设备，已自动转为离线静态代码深度反编译模式"
             actual_audit_type = "static"
-            
+
         if actual_audit_type == "dynamic" and device_connected:
             p_chk = subprocess.run([ADB_BIN, "-s", serial, "shell", f"pm list packages {package_name}"], capture_output=True, text=True, timeout=5)
             is_preinstalled = f"package:{package_name}" in p_chk.stdout
-            
+
             if not is_preinstalled:
                 print(f"[*] 通道 A 动态沙箱：临时推装 {save_path} 至真机 {serial}...")
                 inst_p = subprocess.run([ADB_BIN, "-s", serial, "install", "-r", "-g", "-t", save_path], capture_output=True, text=True, timeout=60)
@@ -580,18 +580,18 @@ def api_upload_and_scan():
                     print(f"[!] 临时推装警告: {inst_p.stdout} {inst_p.stderr}")
             else:
                 print(f"[*] 目标包 {package_name} 已存在于真机，直接复用端侧硬件沙箱环境")
-                
+
             engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
             dyn_res = engine.run_dynamic_audit(package_name, duration_seconds=5)
-            
+
             if installed_by_us:
                 print(f"[*] 动态取证完毕，执行端侧临时实例安全卸载回收 (Uninstall {package_name})...")
                 subprocess.run([ADB_BIN, "-s", serial, "uninstall", package_name], capture_output=True, text=True, timeout=30)
                 print(f"[+] 临时实例安全卸载完成")
-                
+
             dyn_res["app_name"] = app_name
             dyn_res["package_name"] = package_name
-            dyn_res["compliance_score"] = dyn_res["dynamic_score"]
+            dyn_res["compliance_score"] = dyn_res.get("dynamic_score") or 100
             dyn_res["risk_level"] = "高风险" if dyn_res["compliance_score"] < 60 else ("中风险" if dyn_res["compliance_score"] < 80 else "合规")
             dyn_res["elapsed"] = dyn_res.get("duration_seconds", 5)
             dyn_res["target_sdk"] = dev.get("android_version", "16")
@@ -602,7 +602,7 @@ def api_upload_and_scan():
             dyn_res["temp_installed_and_purged"] = installed_by_us
             dyn_res["audit_type"] = "dynamic"
             dyn_res["channel"] = "A"
-            
+
             findings = []
             for v in dyn_res.get("dynamic_violations", []):
                 cat = "剪贴板合规" if "CLIPBOARD" in v["rule_id"] else ("传感器行为" if "SHAKE" in v["rule_id"] else "设备标识符")
@@ -623,11 +623,11 @@ def api_upload_and_scan():
                         "caller_class": "android.app.ActivityThread",
                         "caller_method": "performLaunchActivity()",
                         "target_api": v["name"],
-                        "offset": "端侧沙箱实时探针截获 (T+0.28s)"
+                        "offset": f"端侧沙箱探针截获 ({v.get('trigger_time', '运行期')})"
                     }]
                 })
             dyn_res["findings"] = findings
-            
+
             dim_device_deduct = sum(v["deduct"] for v in dyn_res["dynamic_violations"] if "DEVICE" in v["rule_id"])
             dim_behavior_deduct = sum(v["deduct"] for v in dyn_res["dynamic_violations"] if "SHAKE" in v["rule_id"])
             dim_data_deduct = sum(v["deduct"] for v in dyn_res["dynamic_violations"] if "CLIPBOARD" in v["rule_id"])
@@ -637,12 +637,12 @@ def api_upload_and_scan():
                 "dim_permission": { "name": "权限最小化", "icon": "fa-key", "weight": 20, "score": 20, "deduction": 0 },
                 "dim_data": { "name": "数据与剪切板", "icon": "fa-clipboard-check", "weight": 20, "score": max(0, 20 - dim_data_deduct), "deduction": dim_data_deduct }
             }
-            
+
             rep_name = report_generator.generate_report(dyn_res)
             dyn_res["report_filename"] = rep_name
             dyn_res["report_path"] = os.path.join("outputs", rep_name)
             return jsonify({"success": True, "data": dyn_res})
-            
+
         elif actual_audit_type == "hybrid" and device_connected:
             target_scan_path = save_path
             if audit_mode == "quick":
@@ -672,32 +672,32 @@ def api_upload_and_scan():
             res["channel"] = "A"
             package_name = res.get("package_name", package_name)
             app_name = res.get("app_name", app_name)
-            
+
             p_chk = subprocess.run([ADB_BIN, "-s", serial, "shell", f"pm list packages {package_name}"], capture_output=True, text=True, timeout=5)
             is_preinstalled = f"package:{package_name}" in p_chk.stdout
-            
+
             if not is_preinstalled:
                 print(f"[*] 通道 A 动静双轨：临时推装 {save_path} 至真机 {serial}...")
                 inst_p = subprocess.run([ADB_BIN, "-s", serial, "install", "-r", "-g", "-t", save_path], capture_output=True, text=True, timeout=60)
                 if inst_p.returncode == 0 or "Success" in inst_p.stdout:
                     installed_by_us = True
                     print(f"[+] 临时推装成功")
-            
+
             engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
             dyn_res = engine.run_dynamic_audit(package_name, duration_seconds=5, static_findings=res.get("findings"))
-            
+
             if installed_by_us:
                 print(f"[*] 动静双轨取证完毕，执行端侧临时实例安全卸载回收 (Uninstall {package_name})...")
                 subprocess.run([ADB_BIN, "-s", serial, "uninstall", package_name], capture_output=True, text=True, timeout=30)
                 print(f"[+] 临时实例安全卸载完成")
-                
+
             res["timeline"] = dyn_res.get("timeline", [])
             res["dynamic_violations"] = dyn_res.get("dynamic_violations", [])
             res["cross_validation"] = dyn_res.get("cross_validation", {})
             res["device_profile"] = dyn_res.get("device_profile", {})
             res["dynamic_score"] = dyn_res.get("dynamic_score", 100)
             res["temp_installed_and_purged"] = installed_by_us
-            
+
             static_score = res.get("compliance_score", 100)
             dyn_score = dyn_res.get("dynamic_score", 100)
             res["static_score"] = static_score
@@ -705,21 +705,24 @@ def api_upload_and_scan():
             res["compliance_score"] = round(static_score * 0.5 + dyn_score * 0.5, 1)
             res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
             res["findings"] = correlate_hybrid_findings(res.get("findings", []), res["dynamic_violations"], res["timeline"])
+            total_rules = len(res["findings"])
             confirmed_cnt = sum(1 for f in res["findings"] if f.get("cross_status") == "confirmed")
+            confirm_rate = f"{round((confirmed_cnt / max(1, total_rules)) * 100, 1)}%" if total_rules > 0 else "100.0%"
             res["hybrid_summary"] = {
-                "total_rules": len(res["findings"]),
+                "total_rules": total_rules,
                 "confirmed_count": confirmed_cnt,
-                "latent_count": len(res["findings"]) - confirmed_cnt,
-                "accuracy": "97.8%",
+                "latent_count": total_rules - confirmed_cnt,
+                "accuracy": confirm_rate,
+                "confirmation_rate": confirm_rate,
                 "static_score": static_score,
                 "dynamic_score": dyn_score
             }
-            
+
             rep_name = report_generator.generate_report(res)
             res["report_filename"] = rep_name
             res["report_path"] = os.path.join("outputs", rep_name)
             return jsonify({"success": True, "data": res})
-            
+
         else:
             target_scan_path = save_path
             if audit_mode == "quick":
@@ -751,12 +754,12 @@ def api_upload_and_scan():
             if fallback_offline:
                 res["fallback_offline"] = True
                 res["fallback_reason"] = fallback_reason
-                
+
             rep_name = report_generator.generate_report(res)
             res["report_filename"] = rep_name
             res["report_path"] = os.path.join("outputs", rep_name)
             return jsonify({"success": True, "data": res})
-            
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     finally:
@@ -772,11 +775,11 @@ def api_pull_and_scan():
     package_name = data.get("package", "mark.via")
     audit_mode = data.get("mode", "deep")
     audit_type = data.get("audit_type", "static")
-    
+
     dev = query_adb_device()
     if not dev.get("connected"):
         return jsonify({"success": False, "error": "设备未连接，无法从真机提取安装包"})
-    
+
     serial = dev["serial"]
 
     # 纯动态沙箱模式：直接在端侧拉起并采集探针，无需拉取 APK
@@ -787,14 +790,14 @@ def api_pull_and_scan():
             friendly_name = app_names_db.resolve_app_name(package_name)
             payload_info = app_names_db.estimate_audit_payload(package_name)
             dyn_res["app_name"] = friendly_name
-            dyn_res["compliance_score"] = dyn_res["dynamic_score"]
+            dyn_res["compliance_score"] = dyn_res.get("dynamic_score") or 100
             dyn_res["risk_level"] = "高风险" if dyn_res["compliance_score"] < 60 else ("中风险" if dyn_res["compliance_score"] < 80 else "合规")
             dyn_res["elapsed"] = dyn_res.get("duration_seconds", 5)
             dyn_res["target_sdk"] = dev.get("android_version", "16")
             dyn_res["report_filename"] = f"Compliance_Report_{package_name}_dynamic.html"
             dyn_res["file_size_mb"] = payload_info.get("total_mb", 2.5)
             dyn_res["payload_mb"] = payload_info.get("payload_mb", 2.1)
-            
+
             findings = []
             for v in dyn_res.get("dynamic_violations", []):
                 cat = "剪贴板合规" if "CLIPBOARD" in v["rule_id"] else ("传感器行为" if "SHAKE" in v["rule_id"] else "设备标识符")
@@ -815,11 +818,11 @@ def api_pull_and_scan():
                         "caller_class": "android.app.ActivityThread",
                         "caller_method": "performLaunchActivity()",
                         "target_api": v["name"],
-                        "offset": "端侧沙箱实时探针截获 (T+0.28s)"
+                        "offset": f"端侧沙箱探针截获 ({v.get('trigger_time', '运行期')})"
                     }]
                 })
             dyn_res["findings"] = findings
-            
+
             dim_device_deduct = sum(v["deduct"] for v in dyn_res["dynamic_violations"] if "DEVICE" in v["rule_id"])
             dim_behavior_deduct = sum(v["deduct"] for v in dyn_res["dynamic_violations"] if "SHAKE" in v["rule_id"])
             dim_data_deduct = sum(v["deduct"] for v in dyn_res["dynamic_violations"] if "CLIPBOARD" in v["rule_id"])
@@ -830,7 +833,7 @@ def api_pull_and_scan():
                 "dim_data": { "name": "数据与剪切板", "icon": "fa-clipboard-check", "weight": 20, "score": max(0, 20 - dim_data_deduct), "deduction": dim_data_deduct }
             }
             dyn_res["audit_type"] = "dynamic"
-            
+
             rep_name = report_generator.generate_report(dyn_res)
             dyn_res["report_filename"] = rep_name
             dyn_res["report_path"] = os.path.join("outputs", rep_name)
@@ -838,7 +841,7 @@ def api_pull_and_scan():
                 shutil.copyfile(dyn_res["report_path"], os.path.join("outputs", f"Compliance_Report_{package_name}_dynamic.html"))
             except Exception:
                 pass
-                
+
             return jsonify({"success": True, "data": dyn_res})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
@@ -851,10 +854,10 @@ def api_pull_and_scan():
             if "package:" in line:
                 remote_path = line.replace("package:", "").strip()
                 break
-        
+
         if not remote_path:
             return jsonify({"success": False, "error": f"未在设备上找到包名 {package_name} 的安装路径"})
-        
+
         # 获取真机原始 APK 体量
         stat_p = subprocess.run([ADB_BIN, "-s", serial, "shell", f"stat -c \"%s\" {remote_path}"], capture_output=True, text=True, timeout=4)
         orig_bytes = int(stat_p.stdout.strip()) if stat_p.stdout.strip().isdigit() else 0
@@ -863,17 +866,17 @@ def api_pull_and_scan():
         local_target = os.path.join("work", f"pulled_{package_name}.apk")
         # 执行端云协同靶向流式提取
         success, mode = extract_and_package_targeted_payload(serial, remote_path, package_name, local_target, audit_mode=audit_mode)
-        
+
         if not success or not os.path.exists(local_target):
             return jsonify({"success": False, "error": "ADB 提取失败，未能获取核心载荷 APK"})
-        
+
         # Run audit
         file_size_mb = round(os.path.getsize(local_target) / (1024 * 1024), 2)
         md5_hash, sha256_hash = calculate_file_hash(local_target)
         res = app_guard_scanner.run_audit(local_target)
         payload_details = calculate_audit_payload_details(local_target)
         res["audit_mode"] = audit_mode
-        
+
         if mode == "targeted_stream" and orig_mb > 0:
             res["extraction_mode"] = "targeted_stream"
             res["total_package_size_mb"] = orig_mb
@@ -890,7 +893,7 @@ def api_pull_and_scan():
             res["dex_count"] = payload_details["dex_count"]
             res["filter_ratio"] = payload_details["filter_ratio"]
             res["file_size_mb"] = file_size_mb
-            
+
         res["md5"] = md5_hash
         res["sha256"] = sha256_hash
         res["audit_type"] = audit_type
@@ -904,7 +907,7 @@ def api_pull_and_scan():
             res["cross_validation"] = dyn_res.get("cross_validation", {})
             res["device_profile"] = dyn_res.get("device_profile", {})
             res["dynamic_score"] = dyn_res.get("dynamic_score", 100)
-            
+
             static_score = res.get("compliance_score", 100)
             dyn_score = dyn_res.get("dynamic_score", 100)
             res["static_score"] = static_score
@@ -912,12 +915,15 @@ def api_pull_and_scan():
             res["compliance_score"] = round(static_score * 0.5 + dyn_score * 0.5, 1)
             res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
             res["findings"] = correlate_hybrid_findings(res.get("findings", []), res["dynamic_violations"], res["timeline"])
+            total_rules = len(res["findings"])
             confirmed_cnt = sum(1 for f in res["findings"] if f.get("cross_status") == "confirmed")
+            confirm_rate = f"{round((confirmed_cnt / max(1, total_rules)) * 100, 1)}%" if total_rules > 0 else "100.0%"
             res["hybrid_summary"] = {
-                "total_rules": len(res["findings"]),
+                "total_rules": total_rules,
                 "confirmed_count": confirmed_cnt,
-                "latent_count": len(res["findings"]) - confirmed_cnt,
-                "accuracy": "97.8%",
+                "latent_count": total_rules - confirmed_cnt,
+                "accuracy": confirm_rate,
+                "confirmation_rate": confirm_rate,
                 "static_score": static_score,
                 "dynamic_score": dyn_score
             }
@@ -939,11 +945,11 @@ def api_run_dynamic_sandbox():
     duration = int(data.get("duration", 5))
     simulate_motion = bool(data.get("simulate_motion", True))
     static_findings = data.get("static_findings", None)
-    
+
     dev = query_adb_device()
     if not dev.get("connected"):
         return jsonify({"success": False, "error": "真机设备未连接，无法拉起边缘硬件沙箱"})
-        
+
     serial = dev.get("serial", "")
     engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
     try:
@@ -951,14 +957,14 @@ def api_run_dynamic_sandbox():
         friendly_name = app_names_db.resolve_app_name(package_name)
         payload_info = app_names_db.estimate_audit_payload(package_name)
         res["app_name"] = friendly_name
-        res["compliance_score"] = res["dynamic_score"]
+        res["compliance_score"] = res.get("dynamic_score") or 100
         res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
         res["elapsed"] = duration
         res["target_sdk"] = dev.get("android_version", "16")
         res["report_filename"] = f"Compliance_Report_{package_name}_dynamic.html"
         res["file_size_mb"] = payload_info.get("total_mb", 2.5)
         res["payload_mb"] = payload_info.get("payload_mb", 2.1)
-        
+
         findings = []
         for v in res.get("dynamic_violations", []):
             cat = "剪贴板合规" if "CLIPBOARD" in v["rule_id"] else ("传感器行为" if "SHAKE" in v["rule_id"] else "设备标识符")
@@ -979,11 +985,11 @@ def api_run_dynamic_sandbox():
                     "caller_class": "android.app.ActivityThread",
                     "caller_method": "performLaunchActivity()",
                     "target_api": v["name"],
-                    "offset": "端侧沙箱实时探针截获 (T+0.28s)"
+                    "offset": f"端侧沙箱探针截获 ({v.get('trigger_time', '运行期')})"
                 }]
             })
         res["findings"] = findings
-        
+
         dim_device_deduct = sum(v["deduct"] for v in res["dynamic_violations"] if "DEVICE" in v["rule_id"])
         dim_behavior_deduct = sum(v["deduct"] for v in res["dynamic_violations"] if "SHAKE" in v["rule_id"])
         dim_data_deduct = sum(v["deduct"] for v in res["dynamic_violations"] if "CLIPBOARD" in v["rule_id"])
@@ -994,7 +1000,7 @@ def api_run_dynamic_sandbox():
             "dim_data": { "name": "数据与剪切板", "icon": "fa-clipboard-check", "weight": 20, "score": max(0, 20 - dim_data_deduct), "deduction": dim_data_deduct }
         }
         res["audit_type"] = "dynamic"
-        
+
         rep_name = report_generator.generate_report(res)
         res["report_filename"] = rep_name
         res["report_path"] = os.path.join("outputs", rep_name)
@@ -1002,7 +1008,7 @@ def api_run_dynamic_sandbox():
             shutil.copyfile(res["report_path"], os.path.join("outputs", f"Compliance_Report_{package_name}_dynamic.html"))
         except Exception:
             pass
-            
+
         return jsonify({"success": True, "data": res})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

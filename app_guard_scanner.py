@@ -487,31 +487,66 @@ public class CompliantPluginLoader {
 # 常见第三方 SDK 特征指纹库 (SDK Fingerprints)
 KNOWN_SDKS = {
     "com/pangle": "穿山甲广告 (Pangle / ByteDance)",
-    "com/bytedance": "字节跳动系 SDK",
+    "com/bytedance/sdk/openadsdk": "穿山甲广告 SDK",
     "com/qq/e": "腾讯优量汇广告 (Tencent GDT)",
-    "com/tencent/bugly": "腾讯 Bugly 异常上报",
-    "com/tencent": "腾讯通用 SDK",
-    "cn/jpush": "极光推送 (JPush)",
-    "cn/jiguang": "极光推送 (JPush)",
-    "com/amap": "高德地图/定位 SDK",
-    "com/baidu": "百度 SDK",
-    "com/umeng": "友盟统计与分析 SDK",
-    "com/alipay": "支付宝支付与安全 SDK",
-    "com/sensorsdata": "神策数据分析 SDK",
+    "com/baidu/mobads": "百度移动广告 SDK",
     "com/kwad": "快手联盟广告 SDK",
+    "com/kwai": "快手商业化 SDK",
     "com/sigmob": "Sigmob 移动广告 SDK",
-    "com/mob": "MobTech 开发者服务",
-    "com/talkingdata": "TalkingData 移动统计",
-    "com/igexin": "个推推送 SDK",
-    "com/xiaomi/mipush": "小米推送 SDK",
-    "com/huawei/hms": "华为 HMS Core SDK"
+    "com/tencent/bugly": "腾讯 Bugly 异常监控与崩溃分析",
+    "com/tencent/mm/opensdk": "微信开放平台 SDK (OpenSDK)",
+    "com/tencent/map": "腾讯地图 SDK",
+    "com/tencent/tencentmap": "腾讯地图定位组件",
+    "com/tencent/cos": "腾讯云对象存储 COS SDK",
+    "com/tencent/cloud": "腾讯云移动终端 SDK",
+    "com/tencent/smtt": "腾讯浏览服务 X5 内核 (TBS)",
+    "com/tencent": "腾讯通用基础 SDK",
+    "cn/jpush": "极光推送 (JPush)",
+    "cn/jiguang": "极光开发者服务 (JIGUANG)",
+    "com/igexin": "个推消息推送 (GeTui)",
+    "com/getui": "个推开发者服务",
+    "com/amap/api": "高德地图与高精度定位 SDK",
+    "com/autonavi": "高德地图底层定位服务",
+    "com/amap": "高德地图/定位 SDK",
+    "com/baidu/location": "百度高精度定位 SDK",
+    "com/baidu/mapapi": "百度地图 API",
+    "com/baidu": "百度通用开发者服务",
+    "com/umeng": "友盟统计与社会化分享 SDK",
+    "com/alipay": "支付宝支付与移动安全 SDK",
+    "com/sensorsdata": "神策数据用户行为分析 SDK",
+    "com/talkingdata": "TalkingData 移动大数据分析",
+    "com/mob": "MobTech 开发者服务 (ShareSDK/秒验)",
+    "com/sina/weibo": "新浪微博社会化分享 SDK",
+    "com/huawei/hms": "华为移动服务 (HMS Core)",
+    "com/xiaomi/mipush": "小米消息推送 (MiPush)",
+    "com/xiaomi/push": "小米系统推送组件",
+    "com/heytap/msp": "OPPO HeyTap 移动推送 SDK",
+    "com/oppo/push": "OPPO 推送服务",
+    "com/vivo/push": "vivo 消息推送 SDK",
+    "com/meizu/cloud/pushsdk": "魅族云推送 SDK",
+    "io/agora": "声网 Agora 实时音视频 SDK",
+    "com/netease/nimlib": "网易云信即时通讯 (NIM) SDK",
+    "io/rong": "融云即时通讯 (RongCloud) SDK",
+    "com/alibaba/sdk": "阿里云移动开发平台 SDK",
+    "com/aliyun": "阿里云移动基础设施组件",
+    "com/bytedance/applog": "火山引擎 DataFinder 移动分析",
+    "com/bytedance": "字节跳动系通用组件",
+    "com/geetest": "极验行为安全验证码 SDK",
+    "com/dingxiang": "顶象无感验证与移动风控 SDK",
+    "com/secneo": "梆梆移动应用安全加固组件",
+    "com/ijiami": "爱加密安全加固与检测 SDK",
+    "com/appsflyer": "AppsFlyer 移动归因与营销分析",
+    "com/adjust/sdk": "Adjust 移动归因与防欺诈 SDK",
+    "io/sentry": "Sentry 移动端性能监控与崩溃上报",
+    "com/google/firebase": "Google Firebase 移动服务平台",
+    "com/qiniu": "七牛云对象存储与移动多媒体 SDK"
 }
 
 def identify_culprit(caller_class):
     norm = caller_class.strip("L;").replace(".", "/")
-    for prefix, sdk_name in KNOWN_SDKS.items():
+    for prefix in sorted(KNOWN_SDKS.keys(), key=len, reverse=True):
         if prefix in norm:
-            return sdk_name
+            return KNOWN_SDKS[prefix]
     return "应用自身业务模块"
 
 def build_sdk_attribution(findings):
@@ -586,9 +621,9 @@ def build_sdk_attribution(findings):
     primary_offender = sdk_list[0]["name"] if sdk_list else "无（均为宿主自研模块）"
     
     verdict = (
-        f"经 AST 调用栈责任穿透分析：第三方集成 SDK 违规占比达 {sdk_pct}%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
+        f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方集成 SDK 违规占比达 {sdk_pct}%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
         if sdk_pct >= 50 else
-        f"经 AST 调用栈责任穿透分析：主要责任源于应用宿主自研业务模块 ({host_pct}%)，集成 SDK 占比 {sdk_pct}%。建议优先依据工信部合规要求与修复建议重构自研代码。"
+        f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：主要责任源于应用宿主自研业务模块 ({host_pct}%)，集成 SDK 占比 {sdk_pct}%。建议优先依据工信部合规要求与修复建议重构自研代码。"
     )
 
     return {
@@ -700,7 +735,7 @@ def run_audit(apk_path):
     print(f"    - Target SDK: {target_sdk}")
     print(f"    - 声明权限数: {len(permissions)}")
 
-    print("\n[2/4] 正在执行 12 大工信部合规红线规则深度匹配与 AST 调用链责任穿透...")
+    print("\n[2/4] 正在执行 12 大工信部合规红线规则深度匹配与字节码调用链责任穿透...")
     findings = []
 
     for rule in MIIT_RULES:
@@ -1068,7 +1103,7 @@ def generate_html_report(apk_path, app_name, package_name, target_sdk, permissio
                 <h2>AppGuard · 移动互联网应用程序隐私合规与SDK安全体检报告</h2>
             </div>
             <div>
-                <span class="badge badge-medium">GB/T 35273-2020 认证</span>
+                <span class="badge badge-medium">对标 GB/T 35273-2020 规范</span>
             </div>
         </div>
 

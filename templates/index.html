@@ -832,7 +832,7 @@
             </div>
             <div class="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center space-x-2 px-3 py-1 font-medium">
                 <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20"></span>
-                <span>Androguard 4.1.4 静态 AST · 端侧系统运行态探针</span>
+                <span>Androguard 4.1.4 字节码/XRef · 端侧系统运行态探针</span>
             </div>
         </div>
     </div>
@@ -879,7 +879,7 @@
                             <span id="channelAStrategyBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30">静态代码 (XRef)</span>
                         </div>
                     <div id="channelAStrategyDesc" class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
-                        上传后执行 AST 语法树逆向反编译，全量扫描权限图谱与跨 DEX 交叉引用。无需真机，离线完全可用。
+                        上传后执行 Dalvik 字节码逆向分析，全量扫描权限图谱与跨 DEX 交叉引用 (XRef)。无需真机，离线完全可用。
                     </div>
                 </div>
                 <!-- 通道 A 演练样本快速注入栏 -->
@@ -1699,7 +1699,7 @@
                 if (topBadge) topBadge.textContent = "DEX / AXML";
                 stratBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30";
                 stratBadge.textContent = "静态代码 (XRef)";
-                stratDesc.innerHTML = "上传后执行 AST 语法树逆向反编译与权限拓扑扫描。<strong>无需真机，离线完全可用。</strong>";
+                stratDesc.innerHTML = "上传后执行 Dalvik 字节码逆向分析与权限拓扑扫描。<strong>无需真机，离线完全可用。</strong>";
             } else if (type === 'dynamic') {
                 if (topBadge) topBadge.textContent = "ADB 临时推装沙箱";
                 stratBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30";
@@ -1738,7 +1738,7 @@
                         <span class="text-[10px] font-mono text-slate-400 dark:text-slate-500">Androguard 4.1.4</span>
                     </div>
                     <div class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-                        <strong>分析原理：</strong>逆向反编译 Dalvik 字节码与 AXML，构建跨 DEX 交叉引用 (XRef) 与 AST 语法树。覆盖死代码与深层第三方 SDK，但无法确证调用时机是否处于用户授权同意之前。
+                        <strong>分析原理：</strong>逆向反编译 Dalvik 字节码与 AXML，构建跨 DEX 交叉引用 (XRef) 与调用拓扑。覆盖死代码与深层第三方 SDK，但无法确证调用时机是否处于用户授权同意之前。
                     </div>
                 `;
             } else if (currentAuditType === 'dynamic') {
@@ -1766,7 +1766,7 @@
                         <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">~8s - 18s</span>
                     </div>
                     <div class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-                        <strong>分析原理：</strong>静态 AST 全域覆盖初筛 + 端侧硬件沙箱真实激发，将代码调用点与端侧毫秒时序（如 T+0.28s）对齐，自动剔除未触发死代码误报，生成符合工信部检测要求的端云协同技术证据链。
+                        <strong>分析原理：</strong>静态代码全域覆盖初筛 + 端侧硬件沙箱真实激发，将代码调用点与端侧运行时序对齐，自动剔除未触发死代码误报，生成符合工信部检测要求的端云协同技术证据链。
                     </div>
                 `;
             }
@@ -1948,7 +1948,7 @@
                     } else if (elapsedSec < 45) {
                         statusEl.textContent = "正在解析类符号表并初步匹配工信部 12 大红线...";
                     } else if (elapsedSec < 150) {
-                        statusEl.textContent = "检测到航母级超多 DEX，正在构建数十万类全局抽象语法树 (AST)...";
+                        statusEl.textContent = "检测到超多 DEX 分卷，正在构建全局跨 DEX 交叉引用与调用关系图 (XRef)...";
                     } else if (elapsedSec < 260) {
                         statusEl.textContent = "正在执行跨 DEX 全局 XRef 深度调用链拓扑交联...";
                     } else {
@@ -2128,12 +2128,8 @@
                 
                 setPipelineStep(2);
                 if (currentAuditType === 'dynamic') {
-                    setTimeout(() => {
-                        logConsole(`[!] [T+0.28s] 探针捕获: 未明示前调用 ClipboardManager.getPrimaryClip()`, false, true);
-                        logConsole(`[!] [T+0.35s] 探针捕获: 协议弹窗前调用 TelephonyManager.getDeviceId() 获取硬件序列号`, false, true);
-                        logConsole(`[!] [T+1.15s] 探针捕获: 开屏注册加速度计 (50Hz 采样率，超敏感摇一摇)`, false, true);
-                        setPipelineStep(4);
-                    }, 2000);
+                    logConsole(`[*] 正在与端侧真机沙箱建立 AppOps 审计连接...`);
+                    logConsole(`[*] 启动静默拉起与首屏行为探针监听...`);
                 }
                 
                 const res = await fetch(endpoint, {
@@ -2144,6 +2140,14 @@
                 const data = await res.json();
                 stopAuditTimer();
                 if (data.success) {
+                    const violations = data.data.dynamic_violations || [];
+                    if (violations.length > 0) {
+                        violations.forEach(v => {
+                            logConsole(`[!] [${v.trigger_time || '运行期'}] 探针捕获: ${v.name} (${v.evidence || ''})`, false, true);
+                        });
+                    } else if (currentAuditType === 'dynamic' || currentAuditType === 'hybrid') {
+                        logConsole(`[+] 动态沙箱审计完成：未捕获到运行时敏感权限越界行为。`);
+                    }
                     renderAuditResult(data.data);
                 } else {
                     logConsole(`审计失败: ${data.error}`, false, true);
@@ -2371,8 +2375,8 @@
                     sdk_count: sList.length,
                     primary_offender: sList.length > 0 ? sList[0].name : "无（均为自研模块）",
                     accountability_verdict: sPct >= 50 
-                        ? `经 AST 语法树调用栈穿透分析：第三方集成 SDK 违规占比达 ${sPct}%，是导致应用被监管通报的首要风险源。建议启动 SDK 延迟初始化隐私合闸，明确责任免责边界。` 
-                        : `经 AST 语法树调用栈穿透分析：主要责任源于应用宿主自研业务模块 (${hPct}%)，集成 SDK 占比 ${sPct}%。建议优先针对自研代码执行合规治理与重构。`,
+                        ? `经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方集成 SDK 违规占比达 ${sPct}%，是导致应用被监管通报的首要风险源。建议启动 SDK 延迟初始化隐私合闸，明确责任免责边界。` 
+                        : `经 Dalvik 字节码调用流与 XRef 责任穿透分析：主要责任源于应用宿主自研业务模块 (${hPct}%)，集成 SDK 占比 ${sPct}%。建议优先针对自研代码执行合规治理与重构。`,
                     sdk_list: sList
                 };
             }
@@ -2415,7 +2419,7 @@
                                 <div>
                                     <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                                         <span>第三方 SDK 责任穿透与侵权归因大盘 (SDK Accountability Matrix)</span>
-                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-bold">AST 语法树穿透</span>
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-bold">XRef 责任穿透</span>
                                     </div>
                                     <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
                                         总违规调用: <span class="font-bold text-slate-800 dark:text-slate-200">${sdkAttr.total_calls} 处</span> · 宿主自研: <span class="font-bold text-sky-600 dark:text-sky-400">${sdkAttr.host_calls} 处 (${hostPct}%)</span> · 第三方商业 SDK: <span class="font-bold text-rose-600 dark:text-rose-400">${sdkAttr.sdk_calls} 处 (${sdkPct}%)</span>
@@ -2590,7 +2594,7 @@
                             <div class="flex items-center space-x-2">
                                 ${d.cross_validation ? `
                                     <div class="text-[10px] font-mono bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-xl font-bold">
-                                        保真度: ${d.cross_validation.accuracy || '97.8%'}
+                                        保真度: ${d.cross_validation.accuracy || '100.0%'}
                                     </div>
                                 ` : ''}
                                 <button onclick="switchTab('timeline')" class="px-3.5 py-1.5 rounded-xl liquid-btn-secondary text-[11px] font-bold transition flex items-center space-x-1.5 interactive-btn">
@@ -2607,8 +2611,8 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-0.5">
                             <div class="p-3 rounded-xl bg-white/50 dark:bg-black/40 border border-slate-200/80 dark:border-white/10">
                                 <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">沙箱静默窗口期</div>
-                                <div class="text-xs font-bold text-slate-900 dark:text-white mt-1">T+0.00s ~ T+0.72s</div>
-                                <div class="text-[10px] text-rose-500 dark:text-rose-400 mt-0.5 font-semibold">协议弹窗前偷跑行为</div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white mt-1">T+0.00s ~ T+1.80s</div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-semibold">首屏启动期行为监听</div>
                             </div>
                             <div class="p-3 rounded-xl bg-white/50 dark:bg-black/40 border border-slate-200/80 dark:border-white/10">
                                 <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">动态抓捕现行铁证</div>
@@ -2754,9 +2758,19 @@
             const cvContainer = document.getElementById('crossVerificationContainer');
             if (cvContainer) {
                 const dynViolations = d.dynamic_violations || [];
-                const hasClipboard = dynViolations.some(v => v.rule_id.includes('CLIPBOARD'));
-                const hasDeviceId = dynViolations.some(v => v.rule_id.includes('DEVICE'));
-                const hasShake = dynViolations.some(v => v.rule_id.includes('SHAKE'));
+                const statFindings = d.findings || [];
+                const dynCount = dynViolations.length;
+                const statCount = statFindings.length;
+                const latentCount = Math.max(0, statCount - dynCount);
+                const confirmRate = (d.cross_validation && d.cross_validation.accuracy) 
+                    ? d.cross_validation.accuracy 
+                    : (statCount > 0 ? ((dynCount / statCount) * 100).toFixed(1) + '%' : '100.0%');
+
+                const deviceViol = dynViolations.find(v => (v.rule_id || '').includes('DEVICE'));
+                const clipViol = dynViolations.find(v => (v.rule_id || '').includes('CLIPBOARD'));
+                const shakeViol = dynViolations.find(v => (v.rule_id || '').includes('SHAKE'));
+                const locViol = dynViolations.find(v => (v.rule_id || '').includes('LOCATION'));
+                const mediaViol = dynViolations.find(v => (v.rule_id || '').includes('AUDIO') || (v.rule_id || '').includes('CAMERA'));
                 
                 cvContainer.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-200/80 dark:border-white/10 pb-3">
@@ -2769,23 +2783,23 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         <div class="p-3 rounded-xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20">
                             <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">静态代码初筛</div>
-                            <div class="text-base font-bold font-mono text-sky-600 dark:text-sky-400 mt-0.5">${(d.findings || []).length} 项调用</div>
-                            <div class="text-[10px] text-slate-400 font-normal">AST 抽象语法树构建</div>
+                            <div class="text-base font-bold font-mono text-sky-600 dark:text-sky-400 mt-0.5">${statCount} 项调用</div>
+                            <div class="text-[10px] text-slate-400 font-normal">Dalvik 字节码 / XRef 构建</div>
                         </div>
                         <div class="p-3 rounded-xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20">
-                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">沙箱现行抓获</div>
-                            <div class="text-base font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">${dynViolations.length || 3} 项违规</div>
-                            <div class="text-[10px] text-slate-400 font-normal">0~2s 弹窗前静默偷跑</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">沙箱现场复核</div>
+                            <div class="text-base font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">${dynCount} 项触发</div>
+                            <div class="text-[10px] text-slate-400 font-normal">运行期真实捕获</div>
                         </div>
                         <div class="p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20">
                             <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">剔除死代码误报</div>
-                            <div class="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">${Math.max(2, (d.findings || []).length - (dynViolations.length || 3))} 项排除</div>
+                            <div class="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">${latentCount} 项排除</div>
                             <div class="text-[10px] text-slate-400 font-normal">深层 SDK 未激活放行</div>
                         </div>
                         <div class="p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
-                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">误报率对比</div>
-                            <div class="text-base font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">42% → 2.2%</div>
-                            <div class="text-[10px] text-slate-400 font-normal">避免企业被监管误罚</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">复核确认率</div>
+                            <div class="text-base font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">${confirmRate}</div>
+                            <div class="text-[10px] text-slate-400 font-normal">动静双轨交叉印证</div>
                         </div>
                     </div>
                     <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
@@ -2793,8 +2807,8 @@
                             <thead class="bg-slate-100 dark:bg-[#10121a] text-slate-600 dark:text-slate-400 text-[10px] uppercase font-mono border-b border-slate-200 dark:border-white/10 font-bold">
                                 <tr>
                                     <th class="p-2.5">违规行为类型</th>
-                                    <th class="p-2.5">静态代码反编译 (AST / XRef)</th>
-                                    <th class="p-2.5">端侧真机沙箱 (Android 16 探针)</th>
+                                    <th class="p-2.5">静态代码反编译 (Dalvik / XRef)</th>
+                                    <th class="p-2.5">端侧真机沙箱 (AppOps / Logcat 探针)</th>
                                     <th class="p-2.5">动静交叉印证裁决</th>
                                 </tr>
                             </thead>
@@ -2802,32 +2816,32 @@
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">设备硬件识别码 (IMEI/SN)</td>
                                     <td class="p-2.5 text-sky-600 dark:text-sky-400">命中 TelephonyManager 调用点</td>
-                                    <td class="p-2.5 ${hasDeviceId ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${hasDeviceId ? 'T+0.35s 协议前调用 (抓获现行)' : '静默窗口期未触发'}</td>
-                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${hasDeviceId ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${hasDeviceId ? '确证违规·一票否决' : '已合规放行'}</span></td>
+                                    <td class="p-2.5 ${deviceViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${deviceViol ? (deviceViol.trigger_time || '运行期') + ' 触发 (抓获现行)' : '静默与运行窗口期未触发'}</td>
+                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${deviceViol ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${deviceViol ? '确证违规·一票否决' : '已合规放行'}</span></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">未明示静默窃取剪贴板</td>
                                     <td class="p-2.5 text-sky-600 dark:text-sky-400">命中 ClipboardManager 跨类引用</td>
-                                    <td class="p-2.5 ${hasClipboard ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${hasClipboard ? 'T+0.28s 启动前嗅探 (抓获现行)' : '未发生静默读取'}</td>
-                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${hasClipboard ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${hasClipboard ? '确证违规·重点通报' : '已合规放行'}</span></td>
+                                    <td class="p-2.5 ${clipViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${clipViol ? (clipViol.trigger_time || '运行期') + ' 触发 (抓获现行)' : '未发生静默读取'}</td>
+                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${clipViol ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${clipViol ? '确证违规·重点通报' : '已合规放行'}</span></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">开屏“摇一摇”超灵敏误触</td>
                                     <td class="p-2.5 text-sky-600 dark:text-sky-400">命中 SensorManager 注册接口</td>
-                                    <td class="p-2.5 ${hasShake ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-500'}">${hasShake ? '50Hz 高频加速度采样 (晃动触发)' : '合规角速度门槛'}</td>
-                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${hasShake ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${hasShake ? '确证违规·诱导跳转' : '已合规放行'}</span></td>
+                                    <td class="p-2.5 ${shakeViol ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-500'}">${shakeViol ? (shakeViol.trigger_time || '运行期') + ' 监听 (晃动触发)' : '合规角速度门槛'}</td>
+                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${shakeViol ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${shakeViol ? '确证违规·诱导跳转' : '已合规放行'}</span></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">后台静默高精度定位</td>
                                     <td class="p-2.5 text-slate-500">静态包含 LocationManager 库</td>
-                                    <td class="p-2.5 text-emerald-600 dark:text-emerald-400 font-bold">静默期未触发，仅在用户授权后调用</td>
-                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-sans font-bold text-[10px]">排除死代码误报·放行</span></td>
+                                    <td class="p-2.5 ${locViol ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold'}">${locViol ? (locViol.trigger_time || '运行期') + ' 触发定位请求' : '静默期未触发，仅在用户授权后调用'}</td>
+                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${locViol ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${locViol ? '注意：定位服务被调用' : '排除死代码误报·放行'}</span></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">麦克风录音偷窥隐患</td>
                                     <td class="p-2.5 text-slate-500">清单声明 RECORD_AUDIO 权限</td>
-                                    <td class="p-2.5 text-emerald-600 dark:text-emerald-400 font-bold">端侧零音频采集流，无后台保活窃听</td>
-                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-sans font-bold text-[10px]">排除死代码误报·放行</span></td>
+                                    <td class="p-2.5 ${mediaViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold'}">${mediaViol ? (mediaViol.trigger_time || '运行期') + ' 触发录音/相机' : '端侧零音频采集流，无后台保活窃听'}</td>
+                                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${mediaViol ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${mediaViol ? '高危违规·偷录风险' : '排除死代码误报·放行'}</span></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -3253,7 +3267,7 @@
                         ],
                         "sdk_count": 3,
                         "primary_offender": "穿山甲广告 (Pangle / ByteDance)",
-                        "accountability_verdict": "经 AST 调用栈责任穿透分析：第三方集成 SDK 违规占比达 62.5%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
+                        "accountability_verdict": "经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方集成 SDK 违规占比达 62.5%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
             },
             "file_size_mb": 2.53,
             "payload_mb": 1.1,
