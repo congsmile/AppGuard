@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Background white squircle -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="#ffffff" stroke="#e5e7eb" stroke-width="4" filter="url(#subtle-shadow)"/>
+  
+  <!-- Central Shield (Obsidian Black) -->
+  <path d="M256 115 C324 115 356 130 356 195 C356 275 314 328 256 358 C198 328 156 275 156 195 C156 130 188 115 256 115 Z" 
+        fill="#090d16"/>
+
+  <!-- Inner Pure White Checkmark -->
+  <path d="M216 230 L248 262 L304 188" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- AppGuard Text (Obsidian Black) -->
+  <text x="256" y="432" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="42" font-weight="bold" fill="#090d16" text-anchor="middle" letter-spacing="1">AppGuard</text>
+</svg>

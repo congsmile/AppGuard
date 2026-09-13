@@ -1,9 +1,15 @@
-# AppGuard · 移动互联网应用程序隐私合规审计与端云协同分析系统 (v1.0)
-
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-green.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-Android_8.0--16.0-orange.svg)](https://developer.android.com)
-[![Standard](https://img.shields.io/badge/Standard-工信部信管函〔2023〕26号-red.svg)](https://www.miit.gov.cn/)
+<div align="center">
+  <img src="AppGuard_Logo.png" width="110" alt="AppGuard Logo" />
+  <h1>AppGuard</h1>
+  <p><strong>移动互联网应用程序隐私合规审计与端云协同分析系统 (v1.0)</strong></p>
+  <p>
+    <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
+    <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-green.svg" alt="Python"></a>
+    <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android_8.0--16.0-orange.svg" alt="Platform"></a>
+    <a href="https://www.miit.gov.cn/"><img src="https://img.shields.io/badge/Standard-工信部信管函〔2023〕26号-red.svg" alt="Standard"></a>
+    <a href="https://www.miit.gov.cn/"><img src="https://img.shields.io/badge/Standard-GB/T_35273--2020-blue.svg" alt="Standard"></a>
+  </p>
+</div>
 
 **AppGuard** 是一套面向移动互联网应用程序（Android APP）的高性能、动静双轨隐私合规审计与端云协同自动化测试系统。系统深度对标《中华人民共和国个人信息保护法》、工业和信息化部《关于进一步提升移动互联网应用服务能力的通知》（**工信部信管函〔2023〕26号**）及电信终端产业协会 **T/TAF 077.1-2022** 规范，解决传统合规检测中“静态逆向误报率高、动态分析依赖 Root 易被对抗、违规取证与监管法规脱节”三大行业瓶颈。
 
@@ -11,15 +17,16 @@
 
 ## 🌟 核心特性 (Key Features)
 
-### 1. 静态深层 AST 逆向与调用链追踪 (Static AST Engine)
+### 1. Dalvik 字节码调用流与跨组件调用链追踪 (Dalvik Bytecode & XRef Engine)
 - **全格式脱壳与解析**：精准解析 `AndroidManifest.xml` (AXML)、DEX 字节码及资源索引表。
-- **敏感 API 调用链定位**：逆向还原设备标识（IMEI/OAID/MAC）、地理位置、通讯录、剪贴板等高敏感 API 调用的真实调用栈上下文。
-- **50+ 主流 SDK 指纹识别**：深度覆盖极光、个推、穿山甲、腾讯广点通、阿里云、高德、微信 OpenSDK 等第三方组件的静态特征。
-- **12 项合规红线规则库**：内置依据工信部历次通报重点构建的规则库，覆盖强制索权、超范围收集、隐蔽自启动等典型违规场景。
+- **敏感 API 调用链定位**：逆向还原设备标识（IMEI/OAID/MAC）、地理位置、通讯录、剪贴板等高敏感 API 调用的真实跨组件交叉引用（XRef）上下文。
+- **50+ 款主流 SDK 指纹识别**：深度覆盖穿山甲、腾讯优量汇、快手联盟、极光、个推、友盟、高德、百度、微信 OpenSDK、支付宝、阿里云、华为 HMS、腾讯 Bugly 等 54 款高频商业 SDK 的静态指纹与包名前缀。
+- **12 项合规红线规则库**：内置依据工信部信管函〔2020〕164号、工信部26号文及推荐性国标 GB/T 35273-2020 构建的合规审计规则库，覆盖强制索权、超范围收集、隐蔽自启动等典型场景。
 
 ### 2. 免 Root 端云协同真机沙箱 (Dynamic Sandbox Probe)
-- **无侵入免 Root 监控**：基于 Android 底层 `AppOps` 审计探针与系统级事件流，在完全无需 Root 的真实量产机（支持最新 Android 14/15/16）上稳定运行，彻底规避反调试与反作弊 SDK 的环境检测。
-- **“摇一摇”广告滥用实测**：内置自动化传感器注入引擎，通过毫秒级加速度与陀螺仪向量模拟，精准诱发并取证开屏“摇一摇”误触与流氓跳转。
+- **无侵入免 Root 监控**：基于 Android 底层 `AppOps` 审计探针与系统级运行日志（Logcat），在完全无需 Root 的真实量产机（支持 Android 8.0 ~ 16.0）上稳定运行，规避反调试 SDK 的环境检测。
+- **真实 AppOps 权限时序差分**：对比启动前后权限调用快照，精准捕捉应用在协议弹窗前（0~1.8s）的剪贴板嗅探、硬件标识读取等静默越界行为。
+- **“摇一摇”与传感器监听审计**：监控加速度计与陀螺仪监听注册事件，依据 T/TAF 077.1 规范检测是否存在无滤波防误触的高灵敏度跳转风险。
 - **后台偷跑与静默访问捕获**：实时监控应用在后台、熄屏或锁屏状态下的麦克风占用、相机静默唤醒、频繁广播自启动及剪贴板偷窥行为。
 
 ### 3. 动静双轨多维置信度评分机制 (Dual-Track Scoring Engine)
@@ -55,11 +62,11 @@
 └───────────────────┬────────────────────────────────┬───────────────────┘
                     │                                │
 ┌───────────────────▼──────────────┐   ┌─────────────▼───────────────────┐
-│   Static AST Analysis Engine     │   │     Dynamic Sandbox Runner      │
+│   Static Bytecode & XRef Engine  │   │     Dynamic Sandbox Runner      │
 │   (app_guard_scanner.py)         │   │     (sandbox_runner.py)         │
 │ ├─ AXML/Manifest Manifest Parser │   │ ├─ Non-Root AppOps Probe Engine │
-│ ├─ Smali/DEX CallGraph Tracing   │   │ ├─ Sensor Shake/Tilt Injection  │
-│ ├─ SDK Signature Matcher (50+)   │   │ ├─ Background Leakage Sniffer   │
+│ ├─ Smali/DEX CallGraph Tracing   │   │ ├─ AppOps Snapshot Diff Probe   │
+│ ├─ SDK Signature Matcher (50+)   │   │ ├─ Logcat System Event Sniffer  │
 │ └─ MIIT 12-Redline Rule Engine   │   │ └─ Foreground Mock User Action  │
 └───────────────────┬──────────────┘   └─────────────┬───────────────────┘
                     └────────────────┬───────────────┘
@@ -76,12 +83,12 @@
 
 | 规则编号 | 审计项名称 | 监管法规依据 | 检测模式 |
 | :--- | :--- | :--- | :--- |
-| `RULE_001` | 私自收集个人信息 | 《个人信息保护法》第13条 / 工信部26号文 | 静态 AST + 动态 AppOps |
+| `RULE_001` | 私自收集个人信息 | 《个人信息保护法》第13条 / 工信部26号文 | 静态 XRef + 动态 AppOps |
 | `RULE_002` | 超范围收集个人信息 | 《必要个人信息范围规定》/ 工信部26号文 | 静态 Manifest + 动态访问 |
 | `RULE_003` | 违规使用个人信息 | 《个人信息保护法》第17条 / 工信部26号文 | 静态调用链分析 |
 | `RULE_004` | 强制用户使用定向推送 | 工信部信管函〔2023〕26号 第六条 | 静态 SDK 检索 |
 | `RULE_005` | 欺骗误导强迫用户 | 工信部信管函〔2023〕26号 第八条 | 静态 Manifest + 动态模拟 |
-| `RULE_006` | “摇一摇”乱跳转与过度敏感 | T/TAF 077.1-2022 / 工信部26号文 第十条 | 动态传感器注入实测 |
+| `RULE_006` | “摇一摇”乱跳转与过度敏感 | T/TAF 077.1-2022 / 工信部26号文 第十条 | 动态传感器监听审计 |
 | `RULE_007` | 应用频繁自启动和关联唤醒 | 工信部信管函〔2023〕26号 第九条 | 静态广播接收器 + 动态探针 |
 | `RULE_008` | 频繁索取权限 / 权限滥用 | 工信部信管函〔2023〕26号 第七条 | 静态声明 + 动态频度统计 |
 | `RULE_009` | 强制、频繁、过度索取权限 | 工信部信管函〔2020〕164号 / 26号文 | 静态 + 动态联合裁定 |
@@ -101,7 +108,7 @@
 
 ### 2. 克隆与安装依赖
 ```bash
-git clone https://github.com/jkahsbs/AppGuard.git
+git clone https://github.com/congsmile/AppGuard.git
 cd AppGuard
 
 pip install -r requirements.txt
@@ -124,8 +131,8 @@ python server.py
 
 ```text
 AppGuard/
-├── app_guard_scanner.py     # 静态 AST 逆向引擎与 12 大工信部合规红线规则库
-├── sandbox_runner.py        # 免 Root 动态沙箱探针（AppOps、传感器注入、后台监控）
+├── app_guard_scanner.py     # Dalvik 字节码逆向引擎与 12 大工信部合规红线规则库
+├── sandbox_runner.py        # 免 Root 动态沙箱探针（AppOps 差分、传感器监听、后台监控）
 ├── app_names_db.py          # 知名应用特征库与耗时动态预估模型
 ├── report_generator.py      # 高保真合规诊断存证 HTML 报告生成器
 ├── server.py                # 端云调度后端与 Web RESTful 控制接口

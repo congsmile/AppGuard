@@ -43,3 +43,9 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# BP & local generation artifacts
+bp_document*.html
+bp_images/
+generate_*.py
+img_*.png
