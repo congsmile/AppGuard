@@ -49,3 +49,4 @@ bp_document*.html
 bp_images/
 generate_*.py
 img_*.png
+appguard_live_*.png
