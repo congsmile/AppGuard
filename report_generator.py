@@ -85,11 +85,18 @@ def generate_report(data):
         rules_text = "、".join(s.get("rules", [])[:3])
         if len(s.get("rules", [])) > 3:
             rules_text += f" 等 {len(s['rules'])} 项"
+        cat = s.get("category", "commercial_sdk")
+        if cat == "official_framework":
+            cat_badge = '<span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);margin-right:6px;">官方框架</span>'
+            pct_color = "#10b981"
+        else:
+            cat_badge = '<span class="badge" style="background:rgba(244,63,94,0.15);color:#fb7185;border:1px solid rgba(244,63,94,0.3);margin-right:6px;">商业SDK</span>'
+            pct_color = "#f87171"
         sdk_rows += f"""
         <tr>
-            <td><strong style="color:#f8fafc;">{s.get('name', '第三方SDK')}</strong></td>
+            <td>{cat_badge}<strong style="color:#f8fafc;">{s.get('name', '第三方SDK')}</strong></td>
             <td><code style="color:#38bdf8;">{s.get('count', 0)} 处</code></td>
-            <td><span style="font-weight:bold;color:#f87171;">{s.get('percentage', 0)}%</span></td>
+            <td><span style="font-weight:bold;color:{pct_color};">{s.get('percentage', 0)}%</span></td>
             <td><span style="font-size:11px;color:#cbd5e1;">{rules_text}</span></td>
             <td style="font-size:11px;color:#94a3b8;line-height:1.4;">{s.get('action_advice', '')}</td>
         </tr>
@@ -97,23 +104,26 @@ def generate_report(data):
     sdk_matrix_html = f"""
     <div class="section-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-                <span class="badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">责任穿透</span>
-                <h3 style="margin:0;font-size:16px;">第三方 SDK 责任穿透与侵权归因大盘 (SDK Accountability Matrix)</h3>
-            </div>
+           <div style="display:flex;align-items:center;gap:8px;">
+               <span class="badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">责任穿透</span>
+               <h3 style="margin:0;font-size:16px;">第三方 SDK 责任穿透与侵权归因大盘 (SDK Accountability Matrix)</h3>
+           </div>
             <span style="font-size:12px;color:#94a3b8;font-family:monospace;">
-                自研业务 <strong style="color:#38bdf8;">{sdk_attribution.get('host_pct', 50)}%</strong> vs SDK <strong style="color:#f87171;">{sdk_attribution.get('sdk_pct', 50)}%</strong>
+                自研业务 <strong style="color:#38bdf8;">{sdk_attribution.get('host_pct', 0)}%</strong> | 
+                官方框架 <strong style="color:#10b981;">{sdk_attribution.get('framework_pct', 0)}%</strong> | 
+                商业SDK <strong style="color:#f87171;">{sdk_attribution.get('sdk_pct', 0)}%</strong>
             </span>
         </div>
         
-        <!-- 双色责任切分条 -->
+        <!-- 三维责任切分条 (自研业务 / 官方系统兼容框架 / 商业第三方SDK) -->
         <div style="width:100%;height:12px;border-radius:6px;background:#1e293b;overflow:hidden;display:flex;margin-bottom:14px;">
-            <div style="background:linear-gradient(90deg, #0284c7, #38bdf8);width:{sdk_attribution.get('host_pct', 50)}%;height:100%;" title="宿主自研业务占比"></div>
-            <div style="background:linear-gradient(90deg, #f43f5e, #fb7185);width:{sdk_attribution.get('sdk_pct', 50)}%;height:100%;" title="第三方SDK违规占比"></div>
+            <div style="background:linear-gradient(90deg, #0284c7, #38bdf8);width:{sdk_attribution.get('host_pct', 0)}%;height:100%;" title="宿主自研业务: {sdk_attribution.get('host_pct', 0)}%"></div>
+            <div style="background:linear-gradient(90deg, #059669, #10b981);width:{sdk_attribution.get('framework_pct', 0)}%;height:100%;" title="官方系统框架: {sdk_attribution.get('framework_pct', 0)}%"></div>
+            <div style="background:linear-gradient(90deg, #e11d48, #fb7185);width:{sdk_attribution.get('sdk_pct', 0)}%;height:100%;" title="商业第三方SDK: {sdk_attribution.get('sdk_pct', 0)}%"></div>
         </div>
         
         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--card-border);border-radius:10px;padding:12px 14px;font-size:12px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">
-            <strong>法证穿透意见：</strong>{sdk_attribution.get('accountability_verdict', '')}
+            <strong>合规穿透审计意见：</strong>{sdk_attribution.get('accountability_verdict', '')}
         </div>
 
         <table class="data-table">
@@ -148,35 +158,35 @@ def generate_report(data):
         
         cross_val_html = f"""
         <div class="section-card cross-val-card">
-            <div class="cv-header">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <span class="pulse-dot"></span>
-                    <h3 style="margin:0;font-size:16px;">动静双轨交叉印证法证结论 (Cross-Verification Evidence)</h3>
-                </div>
-                <span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);">
-                    保真度: {acc} (极高可信度)
-                </span>
-            </div>
-            <p style="margin:10px 0 16px 0;font-size:13px;color:#cbd5e1;line-height:1.6;">
-                <strong>法证鉴定意见：</strong>{verdict}
-            </p>
-            <div class="cv-grid">
-                <div class="cv-stat">
-                    <div class="cv-stat-label">静态代码规则全量检出</div>
-                    <div class="cv-stat-num" style="color:#38bdf8;">{stat_cnt} <span style="font-size:12px;font-weight:normal;">项潜在调用</span></div>
-                    <div class="cv-stat-desc">含第三方 SDK 冗余死代码</div>
-                </div>
-                <div class="cv-stat">
-                    <div class="cv-stat-label">真机硬件沙箱现行抓获</div>
-                    <div class="cv-stat-num" style="color:#ef4444;">{dyn_cnt} <span style="font-size:12px;font-weight:normal;">项现场触发</span></div>
-                    <div class="cv-stat-desc">在未明示前 0~2s 偷跑证据</div>
-                </div>
-                <div class="cv-stat">
-                    <div class="cv-stat-label">成功剔除死代码误报</div>
-                    <div class="cv-stat-num" style="color:#10b981;">{eliminated} <span style="font-size:12px;font-weight:normal;">项虚假报警</span></div>
-                    <div class="cv-stat-desc">避免企业被监管误罚</div>
-                </div>
-                <div class="cv-stat">
+           <div class="cv-header">
+               <div style="display:flex;align-items:center;gap:10px;">
+                   <span class="pulse-dot"></span>
+                    <h3 style="margin:0;font-size:16px;">动静双轨交叉印证证据链 (Cross-Verification Evidence)</h3>
+               </div>
+               <span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);">
+                   保真度: {acc} (极高可信度)
+               </span>
+           </div>
+           <p style="margin:10px 0 16px 0;font-size:13px;color:#cbd5e1;line-height:1.6;">
+                <strong>技术审计意见：</strong>{verdict}
+           </p>
+           <div class="cv-grid">
+               <div class="cv-stat">
+                   <div class="cv-stat-label">静态代码规则全量检出</div>
+                   <div class="cv-stat-num" style="color:#38bdf8;">{stat_cnt} <span style="font-size:12px;font-weight:normal;">项潜在调用</span></div>
+                   <div class="cv-stat-desc">含第三方 SDK 冗余死代码</div>
+               </div>
+               <div class="cv-stat">
+                    <div class="cv-stat-label">真机硬件沙箱运行时捕获</div>
+                    <div class="cv-stat-num" style="color:#ef4444;">{dyn_cnt} <span style="font-size:12px;font-weight:normal;">项现场激活</span></div>
+                    <div class="cv-stat-desc">在未明示前窗口期捕获调用</div>
+               </div>
+               <div class="cv-stat">
+                    <div class="cv-stat-label">成功消歧非活跃调用</div>
+                    <div class="cv-stat-num" style="color:#10b981;">{eliminated} <span style="font-size:12px;font-weight:normal;">项死代码</span></div>
+                    <div class="cv-stat-desc">有效排除非活跃干扰项</div>
+               </div>
+               <div class="cv-stat">
                     <div class="cv-stat-label">测试物理设备与内核</div>
                     <div class="cv-stat-num" style="color:#fbbf24;font-size:15px;line-height:28px;">{dev_prof.get('model', 'Xiaomi 23113RKC6C')}</div>
                     <div class="cv-stat-desc">Android {dev_prof.get('android_version', '16')} · Non-Root 隔离</div>
@@ -228,25 +238,34 @@ def generate_report(data):
         b_cls = "badge-critical" if sev == "CRITICAL" else ("badge-high" if sev == "HIGH" else "badge-medium")
         
         cross_badge = ""
-        if f.get("cross_status") == "confirmed":
-            cross_badge = f"""<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.4);margin-left:8px;">[动静坐实·现场抓捕 {f.get('dynamic_trigger_time', '')}]</span>"""
+        if r.get("framework_internal_only"):
+            cross_badge = f"""<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:rgba(16,185,129,0.2);color:#10b981;border:1px solid rgba(16,185,129,0.4);margin-left:8px;">[官方框架良性兼容·豁免扣分]</span>"""
+        elif f.get("cross_status") == "confirmed":
+            cross_badge = f"""<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.4);margin-left:8px;">[动静交叉印证·运行时捕获 {f.get('dynamic_trigger_time', '')}]</span>"""
         elif f.get("cross_status") == "latent":
-            cross_badge = f"""<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3);margin-left:8px;">[静态潜在·未激发]</span>"""
+            cross_badge = f"""<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3);margin-left:8px;">[静态潜在·监控期未触发]</span>"""
 
         detail_rows = ""
         for d in f.get("details", []):
+            culprit_str = d.get('culprit', '宿主进程')
+            if d.get("is_framework_internal"):
+                culprit_str = f"<span style='color:#10b981;'>[官方兼容]</span> {culprit_str}"
             detail_rows += f"""
             <tr>
-                <td><code>{d.get('culprit', '宿主进程')}</code></td>
+                <td><code>{culprit_str}</code></td>
                 <td><code>{d.get('caller_class', '')}<br>&nbsp;└─&gt; {d.get('caller_method', '')}</code></td>
                 <td><code style="color:#f59e0b;">{d.get('target_api', '')}</code></td>
                 <td><code>{d.get('offset', '探针截获')}</code></td>
             </tr>
             """
         
+        advisory_html = ""
+        if r.get("advisory_note"):
+            advisory_html = f"""<div style="margin:8px 0;padding:8px 12px;border-radius:8px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);font-size:12px;color:#a7f3d0;"><strong>系统兼容免责提示：</strong>{r.get('advisory_note')}</div>"""
+
         note_html = ""
         if f.get("verification_note"):
-            note_html = f"""<div style="margin:8px 0;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:12px;color:#e2e8f0;"><strong>存证对齐结论：</strong>{f.get('verification_note')}</div>"""
+            note_html = f"""<div style="margin:8px 0;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:12px;color:#e2e8f0;"><strong>证据对齐结论：</strong>{f.get('verification_note')}</div>"""
 
         policy_tag = f"""<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;font-family:monospace;"><strong>法规依据：</strong>{r.get('policy_ref', '工信部信管函〔2020〕164号')}</div>""" if r.get('policy_ref') else ""
         
@@ -276,11 +295,12 @@ def generate_report(data):
                     核算扣除: -{r.get('points', 10)} 分 | 捕获调用: {f.get('count', 1)} 处
                 </div>
             </div>
-            <div style="font-size:13px;color:#cbd5e1;margin:10px 0;line-height:1.6;">
-                {r.get('desc', '')}
-            </div>
-            {note_html}
-            <div class="remediation-box">
+           <div style="font-size:13px;color:#cbd5e1;margin:10px 0;line-height:1.6;">
+               {r.get('desc', '')}
+           </div>
+            {advisory_html}
+           {note_html}
+           <div class="remediation-box">
                 {policy_tag}
                 <strong style="color:#38bdf8;">【法规依据与合规治理建议】:</strong> {r.get('remediation_principle', r.get('remediation', '严禁在未明示前私自调用敏感 API。'))}
             </div>

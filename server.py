@@ -466,21 +466,28 @@ def api_scan_local():
                 serial = dev.get("serial", "")
                 engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
                 dyn_res = engine.run_dynamic_audit(res.get("package_name", package_name), duration_seconds=5, static_findings=res.get("findings"))
+                dyn_success = dyn_res.get("success", False)
+                raw_dyn_score = dyn_res.get("dynamic_score")
+
                 res["timeline"] = dyn_res.get("timeline", [])
                 res["dynamic_violations"] = dyn_res.get("dynamic_violations", [])
                 res["cross_validation"] = dyn_res.get("cross_validation", {})
                 res["device_profile"] = dyn_res.get("device_profile", {})
-                res["dynamic_score"] = dyn_res.get("dynamic_score", 100)
+                res["dynamic_score"] = raw_dyn_score
 
                 if audit_type == "dynamic":
-                    res["compliance_score"] = dyn_res.get("dynamic_score", 100)
+                    res["compliance_score"] = raw_dyn_score if (dyn_success and raw_dyn_score is not None) else 100
                     res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
                 elif audit_type == "hybrid":
                     static_score = res.get("compliance_score", 100)
-                    dyn_score = dyn_res.get("dynamic_score", 100)
-                    res["static_score"] = static_score
-                    res["dynamic_score"] = dyn_score
-                    res["compliance_score"] = round(static_score * 0.5 + dyn_score * 0.5, 1)
+                    if dyn_success and raw_dyn_score is not None:
+                        res["static_score"] = static_score
+                        res["dynamic_score"] = raw_dyn_score
+                        res["compliance_score"] = round(static_score * 0.5 + raw_dyn_score * 0.5, 1)
+                    else:
+                        res["static_score"] = static_score
+                        res["dynamic_score"] = None
+                        res["compliance_score"] = static_score
                     res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
                     res["findings"] = correlate_hybrid_findings(res.get("findings", []), res["dynamic_violations"], res["timeline"])
                     total_rules = len(res["findings"])
@@ -493,7 +500,7 @@ def api_scan_local():
                         "accuracy": confirm_rate,
                         "confirmation_rate": confirm_rate,
                         "static_score": static_score,
-                        "dynamic_score": dyn_score
+                        "dynamic_score": raw_dyn_score if raw_dyn_score is not None else "N/A"
                     }
             else:
                 res["timeline"] = generate_dynamic_timeline(res["findings"], res["package_name"])
@@ -588,6 +595,9 @@ def api_upload_and_scan():
                 print(f"[*] 动态取证完毕，执行端侧临时实例安全卸载回收 (Uninstall {package_name})...")
                 subprocess.run([ADB_BIN, "-s", serial, "uninstall", package_name], capture_output=True, text=True, timeout=30)
                 print(f"[+] 临时实例安全卸载完成")
+
+            if not dyn_res.get("success"):
+                return jsonify({"success": False, "error": dyn_res.get("error", "动态沙箱运行失败，设备可能已断开")})
 
             dyn_res["app_name"] = app_name
             dyn_res["package_name"] = package_name
@@ -691,18 +701,25 @@ def api_upload_and_scan():
                 subprocess.run([ADB_BIN, "-s", serial, "uninstall", package_name], capture_output=True, text=True, timeout=30)
                 print(f"[+] 临时实例安全卸载完成")
 
+            dyn_success = dyn_res.get("success", False)
+            raw_dyn_score = dyn_res.get("dynamic_score")
+
             res["timeline"] = dyn_res.get("timeline", [])
             res["dynamic_violations"] = dyn_res.get("dynamic_violations", [])
             res["cross_validation"] = dyn_res.get("cross_validation", {})
             res["device_profile"] = dyn_res.get("device_profile", {})
-            res["dynamic_score"] = dyn_res.get("dynamic_score", 100)
+            res["dynamic_score"] = raw_dyn_score
             res["temp_installed_and_purged"] = installed_by_us
 
             static_score = res.get("compliance_score", 100)
-            dyn_score = dyn_res.get("dynamic_score", 100)
-            res["static_score"] = static_score
-            res["dynamic_score"] = dyn_score
-            res["compliance_score"] = round(static_score * 0.5 + dyn_score * 0.5, 1)
+            if dyn_success and raw_dyn_score is not None:
+                res["static_score"] = static_score
+                res["dynamic_score"] = raw_dyn_score
+                res["compliance_score"] = round(static_score * 0.5 + raw_dyn_score * 0.5, 1)
+            else:
+                res["static_score"] = static_score
+                res["dynamic_score"] = None
+                res["compliance_score"] = static_score
             res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
             res["findings"] = correlate_hybrid_findings(res.get("findings", []), res["dynamic_violations"], res["timeline"])
             total_rules = len(res["findings"])
@@ -715,7 +732,7 @@ def api_upload_and_scan():
                 "accuracy": confirm_rate,
                 "confirmation_rate": confirm_rate,
                 "static_score": static_score,
-                "dynamic_score": dyn_score
+                "dynamic_score": raw_dyn_score if raw_dyn_score is not None else "N/A"
             }
 
             rep_name = report_generator.generate_report(res)
@@ -787,6 +804,8 @@ def api_pull_and_scan():
         try:
             engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
             dyn_res = engine.run_dynamic_audit(package_name, duration_seconds=5)
+            if not dyn_res.get("success"):
+                return jsonify({"success": False, "error": dyn_res.get("error", "动态沙箱运行失败，设备可能已断开")})
             friendly_name = app_names_db.resolve_app_name(package_name)
             payload_info = app_names_db.estimate_audit_payload(package_name)
             dyn_res["app_name"] = friendly_name
@@ -898,21 +917,28 @@ def api_pull_and_scan():
         res["sha256"] = sha256_hash
         res["audit_type"] = audit_type
 
-        # 如果请求了动静双轨交叉存证模式 (Hybrid)
+       # 如果请求了动静双轨交叉存证模式 (Hybrid)
         if audit_type == "hybrid":
             engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
             dyn_res = engine.run_dynamic_audit(package_name, duration_seconds=5, static_findings=res["findings"])
+            dyn_success = dyn_res.get("success", False)
+            raw_dyn_score = dyn_res.get("dynamic_score")
+
             res["timeline"] = dyn_res.get("timeline", [])
             res["dynamic_violations"] = dyn_res.get("dynamic_violations", [])
             res["cross_validation"] = dyn_res.get("cross_validation", {})
             res["device_profile"] = dyn_res.get("device_profile", {})
-            res["dynamic_score"] = dyn_res.get("dynamic_score", 100)
+            res["dynamic_score"] = raw_dyn_score
 
             static_score = res.get("compliance_score", 100)
-            dyn_score = dyn_res.get("dynamic_score", 100)
-            res["static_score"] = static_score
-            res["dynamic_score"] = dyn_score
-            res["compliance_score"] = round(static_score * 0.5 + dyn_score * 0.5, 1)
+            if dyn_success and raw_dyn_score is not None:
+                res["static_score"] = static_score
+                res["dynamic_score"] = raw_dyn_score
+                res["compliance_score"] = round(static_score * 0.5 + raw_dyn_score * 0.5, 1)
+            else:
+                res["static_score"] = static_score
+                res["dynamic_score"] = None
+                res["compliance_score"] = static_score
             res["risk_level"] = "高风险" if res["compliance_score"] < 60 else ("中风险" if res["compliance_score"] < 80 else "合规")
             res["findings"] = correlate_hybrid_findings(res.get("findings", []), res["dynamic_violations"], res["timeline"])
             total_rules = len(res["findings"])
@@ -925,7 +951,7 @@ def api_pull_and_scan():
                 "accuracy": confirm_rate,
                 "confirmation_rate": confirm_rate,
                 "static_score": static_score,
-                "dynamic_score": dyn_score
+                "dynamic_score": raw_dyn_score if raw_dyn_score is not None else "N/A"
             }
         else:
             res["timeline"] = generate_dynamic_timeline(res["findings"], res["package_name"])
@@ -954,6 +980,8 @@ def api_run_dynamic_sandbox():
     engine = sandbox_runner.AndroidDynamicSandbox(adb_bin=ADB_BIN, serial=serial)
     try:
         res = engine.run_dynamic_audit(package_name, duration_seconds=duration, simulate_motion=simulate_motion, static_findings=static_findings)
+        if not res.get("success"):
+            return jsonify({"success": False, "error": res.get("error", "动态沙箱运行失败，设备可能已断开")})
         friendly_name = app_names_db.resolve_app_name(package_name)
         payload_info = app_names_db.estimate_audit_payload(package_name)
         res["app_name"] = friendly_name

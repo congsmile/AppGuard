@@ -127,7 +127,6 @@ public class NetworkStateComplianceHelper {
         "signatures": [
             {"class": "Landroid/net/wifi/WifiInfo;", "method": "getMacAddress"},
             {"class": "Landroid/net/wifi/WifiInfo;", "method": "getBSSID"},
-            {"class": "Landroid/net/wifi/WifiInfo;", "method": "getSSID"},
             {"class": "Ljava/net/NetworkInterface;", "method": "getHardwareAddress"}
         ],
         "remediation": "禁止在初始化阶段扫描 WiFi 物理地址；网络连通性检测统一使用 ConnectivityManager 替代。"
@@ -542,20 +541,66 @@ KNOWN_SDKS = {
     "com/qiniu": "七牛云对象存储与移动多媒体 SDK"
 }
 
+OFFICIAL_FRAMEWORKS = {
+    "androidx": "AndroidX 官方支持库 (系统兼容组件)",
+    "android/support": "Android Support 官方兼容库 (系统兼容组件)",
+    "com/google/android/material": "Google Material 官方设计库 (系统兼容组件)",
+    "com/google/android/gms": "Google Play Services 官方基础服务",
+    "kotlin": "Kotlin 官方标准库",
+    "kotlinx": "KotlinX 协程扩展库"
+}
+
+def is_prefix_match(norm_path, prefix):
+    p = prefix.strip("/")
+    n = norm_path.strip("/")
+    if n == p or n.startswith(p + "/"):
+        return True
+    if ("/" + p + "/") in ("/" + n + "/"):
+        return True
+    return False
+
 def identify_culprit(caller_class):
     norm = caller_class.strip("L;").replace(".", "/")
+    # 1. 优先按路径段精确匹配 54 款商业第三方 SDK
     for prefix in sorted(KNOWN_SDKS.keys(), key=len, reverse=True):
-        if prefix in norm:
+        if is_prefix_match(norm, prefix):
             return KNOWN_SDKS[prefix]
+    # 2. 匹配 Google / AndroidX 官方系统兼容组件
+    for prefix in sorted(OFFICIAL_FRAMEWORKS.keys(), key=len, reverse=True):
+        if is_prefix_match(norm, prefix):
+            return OFFICIAL_FRAMEWORKS[prefix]
+    # 3. 宿主自研业务模块
     return "应用自身业务模块"
+
+def is_benign_framework_call(caller_class, caller_method, target_api):
+    """
+    识别 AndroidX/Google 官方框架内部的已知良性向下兼容实现 (如夜间模式日落日出计算、长按粘贴菜单等)
+    避免将官方系统级组件的向下兼容调用错误扣在应用自研业务头上造成假阳性误报
+    """
+    c = caller_class.replace(".", "/")
+    m = caller_method
+    if ("androidx/appcompat/widget/AppCompatReceiveContentHelper" in c or 
+        "androidx/core/view/ContentInfoCompat" in c or
+        ("androidx/appcompat/widget" in c and "Paste" in m)):
+        if "getPrimaryClip" in target_api:
+            return True
+    if ("TwilightManager" in c or "androidx/appcompat/app" in c):
+        if "Location" in target_api or "getLastKnownLocation" in target_api:
+            return True
+    if "androidx/core/content" in c:
+        if "startForegroundService" in target_api:
+            return True
+    return False
 
 def build_sdk_attribution(findings):
     """
     第三方 SDK 责任穿透与侵权归因大盘
-    统计应用自身业务 vs 第三方 SDK 的违规调用占比与风险分摊
+    统计应用自身业务 vs 官方系统兼容框架 vs 第三方商业 SDK 的违规调用占比与风险分摊
     """
     total_calls = 0
     host_calls = 0
+    framework_calls = 0
+    commercial_sdk_calls = 0
     sdk_map = {}
     
     for f in findings:
@@ -568,10 +613,31 @@ def build_sdk_attribution(findings):
             culprit = d.get("culprit", "应用自身业务模块")
             if "应用自身" in culprit or culprit == "Host App" or culprit == "宿主进程":
                 host_calls += 1
-            else:
+            elif "系统兼容组件" in culprit or "官方" in culprit:
+                framework_calls += 1
                 if culprit not in sdk_map:
                     sdk_map[culprit] = {
                         "name": culprit,
+                        "category": "official_framework",
+                        "count": 0,
+                        "rules": set(),
+                        "severities": set(),
+                        "sample_calls": []
+                    }
+                sdk_map[culprit]["count"] += 1
+                sdk_map[culprit]["rules"].add(rule_name)
+                sdk_map[culprit]["severities"].add(severity)
+                if len(sdk_map[culprit]["sample_calls"]) < 3:
+                    sdk_map[culprit]["sample_calls"].append({
+                        "api": d.get("target_api", ""),
+                        "caller": f"{d.get('caller_class', '')}->{d.get('caller_method', '')}"
+                    })
+            else:
+                commercial_sdk_calls += 1
+                if culprit not in sdk_map:
+                    sdk_map[culprit] = {
+                        "name": culprit,
+                        "category": "commercial_sdk",
                         "count": 0,
                         "rules": set(),
                         "severities": set(),
@@ -586,8 +652,9 @@ def build_sdk_attribution(findings):
                         "caller": f"{d.get('caller_class', '')}->{d.get('caller_method', '')}"
                     })
                     
-    sdk_calls = total_calls - host_calls
+    sdk_calls = commercial_sdk_calls
     host_pct = round((host_calls / total_calls * 100), 1) if total_calls > 0 else 0
+    framework_pct = round((framework_calls / total_calls * 100), 1) if total_calls > 0 else 0
     sdk_pct = round((sdk_calls / total_calls * 100), 1) if total_calls > 0 else 0
     
     sdk_list = []
@@ -596,7 +663,9 @@ def build_sdk_attribution(findings):
         rules_list = sorted(list(item["rules"]))
         
         # 针对不同 SDK 类别提供具有法务实操价值的免责与治理指引
-        if "穿山甲" in name or "优量汇" in name or "快手" in name or "Sigmob" in name:
+        if item.get("category") == "official_framework":
+            action_advice = "官方系统兼容框架：该调用来源于 AndroidX/Google 官方支持库向下兼容实现，通常属于规范生命周期管理，建议复核触发链路并保持框架版本更新。"
+        elif "穿山甲" in name or "优量汇" in name or "快手" in name or "Sigmob" in name:
             action_advice = "广告联盟 SDK：必须在用户同意《隐私政策》后延时初始化，并调用 setPrivacyCompliance(true) 模式，与厂商补签《个人信息处理连带合规协议》。"
         elif "推送" in name or "JPush" in name or "个推" in name or "mipush" in name:
             action_advice = "消息推送 SDK：停用广播链式唤醒保活通道，关闭后台静默读取设备标识与应用列表，升级至工信部合规版本。"
@@ -609,6 +678,7 @@ def build_sdk_attribution(findings):
 
         sdk_list.append({
             "name": name,
+            "category": item.get("category", "commercial_sdk"),
             "count": item["count"],
             "percentage": pct,
             "rules": rules_list,
@@ -620,16 +690,21 @@ def build_sdk_attribution(findings):
     sdk_list.sort(key=lambda x: x["count"], reverse=True)
     primary_offender = sdk_list[0]["name"] if sdk_list else "无（均为宿主自研模块）"
     
-    verdict = (
-        f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方集成 SDK 违规占比达 {sdk_pct}%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
-        if sdk_pct >= 50 else
-        f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：主要责任源于应用宿主自研业务模块 ({host_pct}%)，集成 SDK 占比 {sdk_pct}%。建议优先依据工信部合规要求与修复建议重构自研代码。"
-    )
+    if sdk_pct >= 50:
+        verdict = f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方商业集成 SDK 违规占比达 {sdk_pct}%，官方系统框架占比 {framework_pct}%，自研业务占比 {host_pct}%。商业 SDK 是导致应用触发监管通报的首要风险源，建议启动 SDK 延迟初始化合闸机制。"
+    elif host_pct >= 50:
+        verdict = f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：主要责任源于应用宿主自研业务模块 ({host_pct}%)，官方系统框架占比 {framework_pct}%，商业 SDK 占比 {sdk_pct}%。建议优先依据工信部合规要求重构自研业务代码。"
+    elif framework_pct > 0:
+        verdict = f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：应用自研业务占比 {host_pct}%，官方系统兼容框架占比 {framework_pct}%，第三方商业 SDK 占比 {sdk_pct}%。系统框架兼容组件占比较高，已实施误报消歧与免责归因。"
+    else:
+        verdict = f"经 Dalvik 字节码调用流与 XRef 责任穿透分析：检测到应用敏感调用，自研业务占比 {host_pct}%，商业 SDK 占比 {sdk_pct}%。"
 
     return {
         "total_calls": total_calls,
         "host_calls": host_calls,
         "host_pct": host_pct,
+        "framework_calls": framework_calls,
+        "framework_pct": framework_pct,
         "sdk_calls": sdk_calls,
         "sdk_pct": sdk_pct,
         "sdk_list": sdk_list,
@@ -653,17 +728,22 @@ def calculate_weighted_score(findings):
         base_p = r.get("base_deduction", 5)
         max_p = r.get("max_deduction", 8)
         
-        # 频次对数阻尼公式
-        extra = min(max_p - base_p, int(math.log2(count) * 1.2)) if count > 1 else 0
-        rule_ded = base_p + extra
-        r["calculated_points"] = rule_ded
-        r["points"] = rule_ded
-        
-        dim_deductions[dim_key] += rule_ded
-        if r["severity"] == "CRITICAL":
-            critical_hits.append(r["name"])
-        elif r["severity"] == "HIGH":
-            high_hits.append(r["name"])
+        if r.get("framework_internal_only"):
+            rule_ded = 0
+            r["calculated_points"] = 0
+            r["points"] = 0
+        else:
+            # 频次对数阻尼公式
+            extra = min(max_p - base_p, int(math.log2(count) * 1.2)) if count > 1 else 0
+            rule_ded = base_p + extra
+            r["calculated_points"] = rule_ded
+            r["points"] = rule_ded
+            
+            dim_deductions[dim_key] += rule_ded
+            if r["severity"] == "CRITICAL":
+                critical_hits.append(r["name"])
+            elif r["severity"] == "HIGH":
+                high_hits.append(r["name"])
 
     # 计算四维得分（单维度封顶 25 分）
     dim_scores = {}
@@ -750,19 +830,32 @@ def run_audit(apk_path):
                 for xref_class, xref_method, offset in xrefs:
                     caller_clz_name = xref_class.name
                     caller_mth_name = xref_method.name
+                    target_api_str = f"{target_class.strip('L;').replace('/', '.')} -> {target_method}"
+                    caller_clz_str = caller_clz_name.strip('L;').replace('/', '.')
                     culprit = identify_culprit(caller_clz_name)
+                    is_benign = is_benign_framework_call(caller_clz_str, caller_mth_name, target_api_str)
                     
                     rule_findings.append({
-                        "target_api": f"{target_class.strip('L;').replace('/', '.')} -> {target_method}",
-                        "caller_class": caller_clz_name.strip('L;').replace('/', '.'),
+                        "target_api": target_api_str,
+                        "caller_class": caller_clz_str,
                         "caller_method": caller_mth_name,
                         "culprit": culprit,
-                        "offset": hex(offset)
+                        "offset": hex(offset),
+                        "is_framework_internal": is_benign
                     })
 
         if rule_findings:
+            rule_copy = dict(rule)
+            # 检查是否全部调用点均为官方系统框架内部良性兼容实现
+            framework_internal_only = all(d.get("is_framework_internal") for d in rule_findings)
+            if framework_internal_only:
+                rule_copy["framework_internal_only"] = True
+                rule_copy["base_deduction"] = 0
+                rule_copy["max_deduction"] = 0
+                rule_copy["advisory_note"] = "【系统兼容提示】仅在 AndroidX/官方兼容库内部向下兼容链路中发现调用，非应用主观恶意违规，已依据责任穿透模型豁免扣分。"
+
             findings.append({
-                "rule": rule,
+                "rule": rule_copy,
                 "count": len(rule_findings),
                 "details": rule_findings
             })
@@ -786,7 +879,7 @@ def run_audit(apk_path):
     if is_fused:
         print(f"    - \033[91m[!] {fuse_reason}\033[0m")
     print(f"    - 命中违规规则数: {len(findings)}")
-    print(f"    - 责任穿透: 宿主自研 {sdk_attribution['host_pct']}% | 第三方 SDK {sdk_attribution['sdk_pct']}% (涉及 {sdk_attribution['sdk_count']} 家 SDK)")
+    print(f"    - 责任穿透: 宿主自研 {sdk_attribution['host_pct']}% | 官方系统框架 {sdk_attribution.get('framework_pct', 0)}% | 商业 SDK {sdk_attribution['sdk_pct']}% (涉及 {sdk_attribution['sdk_count']} 款 SDK/组件)")
     print(f"    - 四维分项健康度:")
     for dim_k, dim_v in dimensions.items():
         print(f"      · {dim_v['name']}: {dim_v['score']}/{dim_v['weight']} (扣除 {dim_v['deduction']} 分)")
