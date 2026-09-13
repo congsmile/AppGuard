@@ -6,6 +6,7 @@ from datetime import datetime
 import app_guard_scanner
 import sandbox_runner
 import report_generator
+import compliance_agent
 
 class TestAuditEngine(unittest.TestCase):
 
@@ -408,6 +409,67 @@ class TestAuditEngine(unittest.TestCase):
         self.assertEqual(len(exempt_findings), 1)
         self.assertEqual(deduct_findings[0]["rule"]["points"], 15)
         self.assertEqual(exempt_findings[0]["rule"]["points"], 0)
+
+    def test_agent_category_inference(self):
+        """测试 Agent 针对常见包名的品类先验推断"""
+        self.assertEqual(compliance_agent.infer_app_category("mark.via"), "browser_utility")
+        self.assertEqual(compliance_agent.infer_app_category("com.tencent.qqgame.xq"), "mobile_game")
+        self.assertEqual(compliance_agent.infer_app_category("com.cainiao.wireless"), "ecommerce_life")
+        self.assertEqual(compliance_agent.infer_app_category("com.eg.android.AlipayGphone"), "finance_banking")
+        self.assertEqual(compliance_agent.infer_app_category("com.autonavi.minimap"), "navigation_travel")
+
+    def test_agent_contextual_exemption_and_tracing(self):
+        """测试 Agent 结合业务场景执行最小必要性研判、调用位置溯源与合规豁免"""
+        agent = compliance_agent.ComplianceAgent()
+        dummy_data = {
+            "app_name": "Via",
+            "package_name": "mark.via",
+            "compliance_score": 71,
+            "findings": [
+                {
+                    "rule": {"id": "MIIT-06-SILENT-DOWNLOAD", "name": "诱导点击与静默下载安装 APK", "points": 5, "calculated_points": 5},
+                    "details": [{"caller_class": "sa.m1", "caller_method": "c", "target_api": "android.app.DownloadManager -> enqueue", "culprit": "应用自身业务模块"}]
+                },
+                {
+                    "rule": {"id": "MIIT-04-SHAKE-SENSOR", "name": "开屏‘摇一摇’传感器高频监听与误触风险", "points": 5, "calculated_points": 5},
+                    "details": [{"caller_class": "q3.a", "caller_method": "c", "target_api": "android.hardware.SensorManager -> registerListener", "culprit": "应用自身业务模块"}]
+                }
+            ]
+        }
+        res = agent.analyze(dummy_data, app_category="browser_utility", app_description="极简移动浏览器，用于网页浏览与下载")
+        self.assertEqual(res["baseline_score"], 71)
+        self.assertGreater(res["adjusted_score"], 71, "浏览器下载能力应获得场景豁免，使修正得分高于基准分")
+        self.assertEqual(res["app_category_key"], "browser_utility")
+        
+        traces = {t["rule_id"]: t for t in res["detailed_traces"]}
+        self.assertIn("MIIT-06-SILENT-DOWNLOAD", traces)
+        self.assertIn("豁免", traces["MIIT-06-SILENT-DOWNLOAD"]["verdict_action"])
+        self.assertEqual(traces["MIIT-06-SILENT-DOWNLOAD"]["adjusted_points"], 0)
+        self.assertIn("sa.m1::c", traces["MIIT-06-SILENT-DOWNLOAD"]["code_location_trace"])
+
+        self.assertIn("MIIT-04-SHAKE-SENSOR", traces)
+        self.assertIn("严惩", traces["MIIT-04-SHAKE-SENSOR"]["verdict_action"])
+        self.assertEqual(traces["MIIT-04-SHAKE-SENSOR"]["adjusted_points"], 5)
+
+    def test_report_generator_embeds_agent_verdict(self):
+        """测试报告生成引擎正确嵌入 Agent 场景化最小必要裁决意见书"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            dummy_audit = {
+                "app_name": "TestApp",
+                "package_name": "com.test.app",
+                "compliance_score": 80,
+                "findings": [],
+                "app_category": "browser_utility",
+                "app_description": "测试浏览器"
+            }
+            rep_name = report_generator.generate_report(dummy_audit, output_dir=temp_dir)
+            rep_path = os.path.join(temp_dir, rep_name)
+            self.assertTrue(os.path.exists(rep_path))
+            with open(rep_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("场景化最小必要性智能裁决意见书", content)
+            self.assertIn("AI+ AGENT", content)
+            self.assertIn("四部委 39 类标准", content)
 
 if __name__ == "__main__":
     unittest.main()

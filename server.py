@@ -12,6 +12,7 @@ from flask import Flask, render_template, jsonify, request, send_from_directory
 import sandbox_runner
 import app_guard_scanner
 import report_generator
+import compliance_agent
 import shutil
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -419,6 +420,25 @@ def extract_and_package_targeted_payload(serial, remote_path, package_name, loca
     subprocess.run([ADB_BIN, "-s", serial, "pull", remote_path, local_target], capture_output=True, text=True, timeout=60)
     return os.path.exists(local_target), "full_pull"
 
+def enrich_with_agent_analysis(audit_result, app_category="", app_description=""):
+    """
+    统一为审计结果注入 Agent 场景化最小必要性分析
+    包含：品类国标基线、业务因果研判、代码调用位置精准追溯与分值修正
+    """
+    try:
+        agent_res = compliance_agent.default_compliance_agent.analyze(
+            audit_result,
+            app_category=app_category,
+            app_description=app_description
+        )
+        audit_result["agent_analysis"] = agent_res
+        audit_result["app_category"] = agent_res.get("app_category_key")
+        audit_result["app_category_name"] = agent_res.get("app_category_name")
+        audit_result["app_description"] = agent_res.get("app_description")
+    except Exception as e:
+        print(f"[!] Agent 分析注入告警: {e}")
+    return audit_result
+
 @app.route("/api/scan_local", methods=["POST"])
 def api_scan_local():
     data = request.get_json() or {}
@@ -426,6 +446,8 @@ def api_scan_local():
     audit_mode = data.get("mode", "deep")
     audit_type = data.get("audit_type", "static")
     package_name = data.get("package", "mark.via")
+    app_category = data.get("app_category", "")
+    app_description = data.get("app_description", "")
     if not os.path.exists(apk_path):
         return jsonify({"success": False, "error": f"找不到目标 APK: {apk_path}"})
 
@@ -507,6 +529,7 @@ def api_scan_local():
         else:
             res["timeline"] = generate_dynamic_timeline(res["findings"], res["package_name"])
 
+        res = enrich_with_agent_analysis(res, app_category, app_description)
         rep_name = report_generator.generate_report(res)
         res["report_filename"] = rep_name
         res["report_path"] = os.path.join("outputs", rep_name)
@@ -535,6 +558,8 @@ def api_upload_and_scan():
 
     audit_type = request.form.get("audit_type", "static")
     audit_mode = request.form.get("mode", "deep")
+    app_category = request.form.get("app_category", "")
+    app_description = request.form.get("app_description", "")
 
     safe_name = f"upload_{int(time.time())}_{file.filename}"
     save_path = os.path.join("work/uploads", safe_name)
@@ -648,6 +673,7 @@ def api_upload_and_scan():
                 "dim_data": { "name": "数据与剪切板", "icon": "fa-clipboard-check", "weight": 20, "score": max(0, 20 - dim_data_deduct), "deduction": dim_data_deduct }
             }
 
+            dyn_res = enrich_with_agent_analysis(dyn_res, app_category, app_description)
             rep_name = report_generator.generate_report(dyn_res)
             dyn_res["report_filename"] = rep_name
             dyn_res["report_path"] = os.path.join("outputs", rep_name)
@@ -735,6 +761,7 @@ def api_upload_and_scan():
                 "dynamic_score": raw_dyn_score if raw_dyn_score is not None else "N/A"
             }
 
+            res = enrich_with_agent_analysis(res, app_category, app_description)
             rep_name = report_generator.generate_report(res)
             res["report_filename"] = rep_name
             res["report_path"] = os.path.join("outputs", rep_name)
@@ -772,6 +799,7 @@ def api_upload_and_scan():
                 res["fallback_offline"] = True
                 res["fallback_reason"] = fallback_reason
 
+            res = enrich_with_agent_analysis(res, app_category, app_description)
             rep_name = report_generator.generate_report(res)
             res["report_filename"] = rep_name
             res["report_path"] = os.path.join("outputs", rep_name)
@@ -792,6 +820,8 @@ def api_pull_and_scan():
     package_name = data.get("package", "mark.via")
     audit_mode = data.get("mode", "deep")
     audit_type = data.get("audit_type", "static")
+    app_category = data.get("app_category", "")
+    app_description = data.get("app_description", "")
 
     dev = query_adb_device()
     if not dev.get("connected"):
@@ -853,6 +883,7 @@ def api_pull_and_scan():
             }
             dyn_res["audit_type"] = "dynamic"
 
+            dyn_res = enrich_with_agent_analysis(dyn_res, app_category, app_description)
             rep_name = report_generator.generate_report(dyn_res)
             dyn_res["report_filename"] = rep_name
             dyn_res["report_path"] = os.path.join("outputs", rep_name)
@@ -956,6 +987,7 @@ def api_pull_and_scan():
         else:
             res["timeline"] = generate_dynamic_timeline(res["findings"], res["package_name"])
 
+        res = enrich_with_agent_analysis(res, app_category, app_description)
         rep_name = report_generator.generate_report(res)
         res["report_filename"] = rep_name
         res["report_path"] = os.path.join("outputs", rep_name)
@@ -971,6 +1003,8 @@ def api_run_dynamic_sandbox():
     duration = int(data.get("duration", 5))
     simulate_motion = bool(data.get("simulate_motion", True))
     static_findings = data.get("static_findings", None)
+    app_category = data.get("app_category", "")
+    app_description = data.get("app_description", "")
 
     dev = query_adb_device()
     if not dev.get("connected"):
@@ -1029,6 +1063,7 @@ def api_run_dynamic_sandbox():
         }
         res["audit_type"] = "dynamic"
 
+        res = enrich_with_agent_analysis(res, app_category, app_description)
         rep_name = report_generator.generate_report(res)
         res["report_filename"] = rep_name
         res["report_path"] = os.path.join("outputs", rep_name)
@@ -1055,6 +1090,81 @@ def serve_report(filename):
 def api_sample_apk(filename):
     safe_name = os.path.basename(filename)
     return send_from_directory("work", safe_name, as_attachment=True)
+
+@app.route("/api/agent_config", methods=["GET", "POST"])
+def api_agent_config():
+    if request.method == "GET":
+        cfg = compliance_agent.get_agent_config()
+        raw_key = cfg.get("api_key", "").strip()
+        masked_key = ""
+        if raw_key:
+            masked_key = f"{raw_key[:4]}****{raw_key[-4:]}" if len(raw_key) > 8 else "********"
+        resp_cfg = dict(cfg)
+        resp_cfg["api_key_masked"] = masked_key
+        resp_cfg["has_key"] = bool(raw_key)
+        return jsonify({"success": True, "config": resp_cfg, "providers": compliance_agent.DEFAULT_PROVIDERS})
+
+    data = request.get_json() or {}
+    curr = compliance_agent.get_agent_config()
+    new_key = data.get("api_key", "").strip()
+    if new_key and "****" in new_key:
+        new_key = curr.get("api_key", "")
+
+    curr["provider"] = data.get("provider", curr.get("provider", "deepseek"))
+    curr["api_key"] = new_key
+    curr["base_url"] = data.get("base_url", curr.get("base_url", ""))
+    curr["model_name"] = data.get("model_name", curr.get("model_name", ""))
+    curr["mode"] = data.get("mode", curr.get("mode", "auto"))
+    curr["enabled"] = bool(data.get("enabled", True))
+
+    compliance_agent.save_agent_config(curr)
+    return jsonify({"success": True, "message": "Agent 配置已保存"})
+
+@app.route("/api/agent_test", methods=["POST"])
+def api_agent_test():
+    data = request.get_json() or {}
+    provider = data.get("provider", "deepseek")
+    api_key = data.get("api_key", "").strip()
+    base_url = data.get("base_url", "").strip()
+    model_name = data.get("model_name", "").strip()
+
+    if "****" in api_key or not api_key:
+        saved_cfg = compliance_agent.get_agent_config()
+        if saved_cfg.get("provider") == provider:
+            api_key = saved_cfg.get("api_key", "")
+
+    res = compliance_agent.test_agent_connection(provider, api_key, base_url, model_name)
+    return jsonify(res)
+
+@app.route("/api/app_categories", methods=["GET"])
+def api_app_categories():
+    categories = []
+    for k, v in compliance_agent.GB_APP_CATEGORIES.items():
+        categories.append({
+            "key": k,
+            "name": v["name"],
+            "law_ref": v["law_ref"],
+            "sample_description": v["sample_description"],
+            "strict_redlines": v["strict_redlines"]
+        })
+    return jsonify({"success": True, "categories": categories})
+
+@app.route("/api/agent_analyze", methods=["POST"])
+def api_agent_analyze():
+    data = request.get_json() or {}
+    audit_data = data.get("audit_data", {})
+    app_category = data.get("app_category", "")
+    app_description = data.get("app_description", "")
+
+    if not audit_data:
+        return jsonify({"success": False, "error": "缺少待审机检数据"})
+
+    agent_res = compliance_agent.default_compliance_agent.analyze(
+        audit_data,
+        app_category=app_category,
+        app_description=app_description
+    )
+    return jsonify({"success": True, "agent_analysis": agent_res})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

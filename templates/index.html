@@ -786,6 +786,13 @@
                     </button>
                 </div>
 
+                <!-- 配置 Agent 胶囊按钮 (Apple Liquid Glass Pill) -->
+                <button onclick="openAgentModal()" id="btnOpenAgent" class="px-3 py-1.5 rounded-full liquid-pill transition flex items-center space-x-1.5 interactive-btn cursor-pointer shadow-sm text-slate-800 dark:text-slate-100 hover:border-sky-500/50" title="配置合规审计智能体 (DeepSeek / Kimi / GLM / 自定义)">
+                    <i class="fa-solid fa-microchip-ai text-sky-500 text-xs"></i>
+                    <span class="text-xs font-semibold">配置 Agent</span>
+                    <span id="agentActiveBadge" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" title="智能体就绪"></span>
+                </button>
+
                 <!-- Apple 风格分段主题控制器 (Light / Dark / System) -->
                 <div class="inline-flex items-center p-1 liquid-pill rounded-full text-xs select-none shadow-sm" role="tablist">
                     <button onclick="setThemeMode('light')" id="themeBtn-light" class="px-3.5 py-1 rounded-full transition flex items-center space-x-1.5 interactive-btn cursor-pointer theme-btn-inactive" title="强制浅色主题">
@@ -842,6 +849,65 @@
 
         <!-- VIEW 1: 审计工作台 (Workspace) -->
         <div id="view-workspace" class="space-y-6 tab-view-active">
+            <!-- 智能体应用场景先验标注卡片 (供 Agent 场景化研判) -->
+            <div class="glass-card rounded-3xl p-5 border border-sky-500/20 shadow-sm relative overflow-hidden">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 font-mono text-[10px] font-bold border border-sky-500/30 flex items-center space-x-1">
+                                <i class="fa-solid fa-brain"></i>
+                                <span>AGENT CONTEXT</span>
+                            </span>
+                            <h3 class="text-xs font-bold text-slate-900 dark:text-white tracking-tight">应用场景先验标注 · 供合规智能体场景化研判</h3>
+                            <span class="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">依据四部委《39类App必要个人信息规定》突破机械一刀切误报</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            机检分数仅为初始参考。智能体会结合申报品类与主营用途，深入 DEX 字节码追溯调用位置，对合理业务链路执行豁免或降权。
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <button type="button" onclick="openAgentModal()" class="px-3 py-1.5 rounded-xl liquid-pill text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-sky-500/50 transition flex items-center space-x-1.5 interactive-btn">
+                            <i class="fa-solid fa-sliders text-sky-500 text-[11px]"></i>
+                            <span>模型参数</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3 pt-3 border-t border-slate-200/60 dark:border-white/5">
+                    <div class="lg:col-span-4 space-y-1.5">
+                        <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1">
+                            <i class="fa-solid fa-layer-group text-sky-500 text-[10px]"></i>
+                            <span>App 业务类别 (四部委 39 类国标)：</span>
+                        </label>
+                        <select id="appCategorySelect" onchange="onCategoryChanged()" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-medium text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
+                            <option value="browser_utility">实用工具 (浏览器 / 下载 / 清理)</option>
+                            <option value="navigation_travel">地图导航与位置出行</option>
+                            <option value="im_social">即时通信与社交通讯</option>
+                            <option value="ecommerce_life">网上购物与综合电商</option>
+                            <option value="camera_media">拍摄美颜与音视频编辑</option>
+                            <option value="mobile_game">手机游戏与休闲娱乐</option>
+                            <option value="finance_banking">金融理财与网上银行</option>
+                            <option value="general_custom">其他 / 通用业务类别</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-8 space-y-1.5">
+                        <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                            <span class="flex items-center space-x-1">
+                                <i class="fa-solid fa-quote-left text-sky-500 text-[10px]"></i>
+                                <span>App 主营业务用途说明 (供智能体因果溯源与合理性研判)：</span>
+                            </span>
+                            <span id="catLawRef" class="text-[10px] text-slate-400 font-normal">四部委《规定》第32条：实用工具类基本功能无须个人信息</span>
+                        </label>
+                        <div class="relative">
+                            <input id="appDescriptionInput" type="text" value="极简轻量级移动网页浏览器，核心功能为网页浏览、书签管理和网络文件下载，支持剪贴板网址快捷识别，不含广告变现链路。" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition pr-20" placeholder="请简要说明 App 核心业务与为何需调用敏感功能...">
+                            <button type="button" onclick="resetDefaultDescription()" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-sky-500 px-2 py-0.5 rounded transition">
+                                填入预设
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 样本接入双通道 Bento 卡片 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- 通道 A：本地拖拽上传 -->
@@ -1048,7 +1114,13 @@
                         <span class="text-xs font-bold text-slate-900 dark:text-white tracking-tight">自动化审计流水线 (Pipeline)</span>
                         <span id="pipelineBadge" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/10 font-bold">IDLE 待命</span>
                     </div>
-                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium">工信部 12 大专项合规基准 · 四维加权测评模型 (WCI)</span>
+                    <div class="flex items-center space-x-2.5">
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium hidden md:inline">工信部 12 大专项合规基准 · 四维加权测评模型 (WCI)</span>
+                        <button type="button" onclick="clearPreviousAuditRecords(true, true)" class="px-2.5 py-1 rounded-full liquid-pill text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-sky-500/50 transition flex items-center space-x-1.5 interactive-btn cursor-pointer shadow-sm" title="清空工作台大盘与历史分析记录">
+                            <i class="fa-solid fa-arrow-rotate-left text-sky-500 text-[10px]"></i>
+                            <span>清空大盘记录</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 流水线 5 步进度 (Apple Xcode/Instruments 风格) -->
@@ -1419,6 +1491,7 @@
         }
 
         async function refreshDeviceStatus() {
+            clearPreviousAuditRecords(true, false);
             try {
                 const res = await fetch('/api/device');
                 const data = await res.json();
@@ -1436,17 +1509,17 @@
                         <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 text-[10px] font-mono font-bold">
                             ${data.is_root ? 'Root' : 'Non-Root'}
                         </span>
-                        <button onclick="refreshDeviceStatus()" class="ml-1 text-slate-400 hover:text-slate-700 dark:hover:text-neutral-200 transition interactive-btn" title="刷新硬件通信">
+                        <button onclick="refreshDeviceStatus()" class="ml-1 text-slate-400 hover:text-slate-700 dark:hover:text-neutral-200 transition interactive-btn" title="刷新硬件通信并清空当前大盘记录">
                             <i class="fa-solid fa-rotate text-[10px]"></i>
                         </button>
                     `;
-                    showToast('真机通信在线', `${data.model_name || data.model} (Android ${data.android_version})`, 'success');
+                    showToast('真机通信在线', `${data.model_name || data.model} (Android ${data.android_version}) · 历史记录已清空`, 'success');
                     await loadDeviceAppsList();
                 } else {
                     pill.innerHTML = `
                         <span class="h-2 w-2 rounded-full bg-amber-400"></span>
                         <span class="font-mono text-slate-600 dark:text-slate-300 text-[11px] font-medium">无硬件接入 (离线静态分析)</span>
-                        <button onclick="refreshDeviceStatus()" class="ml-1 text-slate-400 hover:text-slate-700 dark:hover:text-neutral-200 transition interactive-btn" title="刷新硬件通信">
+                        <button onclick="refreshDeviceStatus()" class="ml-1 text-slate-400 hover:text-slate-700 dark:hover:text-neutral-200 transition interactive-btn" title="刷新硬件通信并清空当前大盘记录">
                             <i class="fa-solid fa-rotate text-[10px]"></i>
                         </button>
                     `;
@@ -1454,10 +1527,11 @@
                     sel.disabled = true;
                     btn.disabled = true;
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
-                    showToast('未检测到 USB 硬件探针', '进入离线静态分析模式', 'warning');
+                    showToast('通信刷新完成', '无硬件连接 (进入离线静态分析模式) · 历史记录已清空', 'info');
                 }
             } catch (e) {
                 console.error(e);
+                showToast('通信状态', 'ADB 服务暂不可用，当前为离线模式 · 历史记录已清空', 'warning');
             }
         }
 
@@ -1684,7 +1758,7 @@
                     badge.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/30";
                     badge.textContent = "动静双轨交叉存证";
                 }
-                showToast('已切换至【动静双轨交叉存证模式】', '静态初筛 + 动态抓现行，动静交叉对齐，剔除死代码误报，输出高保真技术存证', 'info');
+                showToast('已切换至【动静双轨交叉存证模式】', '静态代码初筛 + 运行时探针印证，动静交叉对齐，剔除死代码误报，输出高保真技术存证报告', 'info');
             }
             updateChannelAStrategyUI(type);
         }
@@ -1704,12 +1778,12 @@
                 if (topBadge) topBadge.textContent = "ADB 临时推装沙箱";
                 stratBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30";
                 stratBadge.textContent = "端侧动态沙箱 (真机联动)";
-                stratDesc.innerHTML = "检测到真机时：<strong>临时静默推装 ➔ 毫秒级抓捕未明示越界 ➔ 零残留自动卸载</strong>；无设备时：自动离线降级。";
+                stratDesc.innerHTML = "检测到真机时：<strong>临时静默推装 ➔ 运行时探针捕获未明示调用 ➔ 零残留自动卸载</strong>；无设备时：自动离线降级。";
             } else {
                 if (topBadge) topBadge.textContent = "动静双轨·端云存证";
                 stratBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30";
                 stratBadge.textContent = "动静双轨交叉印证";
-                stratDesc.innerHTML = "端云协同：<strong>静态代码初筛 + 端侧硬件沙箱现行抓获</strong>，动静交叉对齐剔除死代码，输出高保真技术存证报告。";
+                stratDesc.innerHTML = "端云协同：<strong>静态代码初筛 + 端侧运行时探针实测</strong>，动静交叉对齐剔除死代码，输出高保真技术存证报告。";
             }
         }
 
@@ -1876,37 +1950,78 @@
           return { seconds: sec, text: formatEstimateSeconds(sec) };
       }
 
-        function clearPreviousAuditRecords() {
-            // 运行新检验时，将之前的审计结果记录区域全部变为空白与隐藏
+        function clearPreviousAuditRecords(isUserReset = false, showToastAlert = false) {
+            // 运行新检验或用户点击刷新时，将之前的审计结果记录区域全部变为空白与隐藏
             const card = document.getElementById('auditSummaryCard');
             if (card) {
                 card.innerHTML = '';
                 card.classList.add('hidden');
             }
             
-            // 清空控制台，仅保留最新一次任务的流水日志
+            // 清空控制台
             const consoleEl = document.getElementById('pipelineConsole');
             if (consoleEl) {
-                consoleEl.innerHTML = '<div class="text-neutral-500">> AppGuard 核心审计引擎就绪，正在准备新样本流水线...</div>';
+                if (isUserReset) {
+                    consoleEl.innerHTML = '<div class="text-neutral-500">> AppGuard 核心审计引擎就绪，等待样本输入...</div>';
+                } else {
+                    consoleEl.innerHTML = '<div class="text-neutral-500">> AppGuard 核心审计引擎就绪，正在准备新样本流水线...</div>';
+                }
             }
 
             // 重置调用链 (XRef) 和时序轴标签页为等待态
             const xrefAppName = document.getElementById('xrefAppName');
-            if (xrefAppName) xrefAppName.textContent = '当前样本：分析中...';
+            if (xrefAppName) xrefAppName.textContent = isUserReset ? '当前样本：---' : '当前样本：分析中...';
             const xrefList = document.getElementById('xrefRuleList');
-            if (xrefList) xrefList.innerHTML = '<div class="p-6 text-center text-xs text-slate-400">正在分析新样本代码语法树，请稍候...</div>';
+            if (xrefList) {
+                xrefList.innerHTML = isUserReset
+                    ? '<div class="p-6 text-center text-xs text-slate-400">暂无待展示调用栈，请先载入样本进行合规审计</div>'
+                    : '<div class="p-6 text-center text-xs text-slate-400">正在分析新样本代码调用图谱，请稍候...</div>';
+            }
             const xrefDetail = document.getElementById('xrefDetailContainer');
-            if (xrefDetail) xrefDetail.innerHTML = '<div class="p-10 text-center text-xs text-slate-400">请完成分析后选择左侧违规规则查看调用栈</div>';
+            if (xrefDetail) {
+                xrefDetail.innerHTML = '<div class="p-10 text-center text-xs text-slate-400">请在左侧选择具体违规项查看 DEX 字节码调用点与整改补丁</div>';
+            }
+            const cvContainer = document.getElementById('crossVerificationContainer');
+            if (cvContainer) {
+                cvContainer.innerHTML = '<div class="p-6 text-center text-xs text-slate-400">等待样本完成动静双轨审计后生成交叉印证矩阵...</div>';
+            }
             const timelineContainer = document.getElementById('timelineEventsContainer');
-            if (timelineContainer) timelineContainer.innerHTML = '<div class="p-10 text-center text-xs text-slate-400">等待新样本完成分析后生成生命周期时序轨迹...</div>';
+            if (timelineContainer) {
+                timelineContainer.innerHTML = '<div class="p-10 text-center text-xs text-slate-400">等待新样本完成分析后生成生命周期时序轨迹...</div>';
+            }
             
-            // 流水线步骤重置到第一步
-            setPipelineStep(1);
+            // 流水线步骤与状态徽标重置
+            setPipelineStep(isUserReset ? 0 : 1);
+            const badge = document.getElementById('pipelineBadge');
+            if (badge) {
+                if (isUserReset) {
+                    badge.className = "text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/10 font-bold";
+                    badge.textContent = "IDLE 待命";
+                } else {
+                    badge.className = "text-[10px] font-mono px-3 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/35 font-bold";
+                    badge.textContent = "AUDITING 审计中";
+                }
+            }
 
-            // 视口平滑聚焦至自动化审计流水线，避免视线停留在原先下方已被清空的空白区
-            const pipelineCard = document.getElementById('pipelineCard');
-            if (pipelineCard) {
-                pipelineCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 隐藏运行中浮标与重置计时器
+            if (isUserReset) {
+                const indicator = document.getElementById('auditRunningIndicator');
+                if (indicator) indicator.classList.add('hidden');
+                if (auditTimerInterval) clearInterval(auditTimerInterval);
+            }
+
+            currentAuditResult = null;
+
+            if (!isUserReset) {
+                // 视口平滑聚焦至自动化审计流水线
+                const pipelineCard = document.getElementById('pipelineCard');
+                if (pipelineCard) {
+                    pipelineCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+
+            if (showToastAlert) {
+                showToast('大盘已清空', '历史审计记录已清空，工作台重置就绪', 'info');
             }
         }
 
@@ -1984,6 +2099,15 @@
 
         async function loadChannelASample(filename, displayName) {
             try {
+                if (filename.includes("via")) {
+                    selectAppCategory("browser_utility", "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。");
+                } else if (filename.includes("xq") || displayName.includes("象棋")) {
+                    selectAppCategory("mobile_game", "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，无需读取通讯录与麦克风。");
+                } else if (filename.includes("cainiao") || displayName.includes("菜鸟")) {
+                    selectAppCategory("ecommerce_life", "综合型移动电商与物流查件平台，提供快递包裹查询、就近驿站取件通知服务。");
+                } else if (filename.includes("alipay") || displayName.includes("支付宝")) {
+                    selectAppCategory("finance_banking", "移动支付与综合金融客户端，用于安全转账、扫码收付款及生活缴费，需合规生物认证与安全风控。");
+                }
                 logConsole(`[*] 正在从演练库载入样本: ${displayName}...`);
                 showToast('载入演练样本', `正在读取 ${displayName} 并注入通道 A...`, 'info');
                 const res = await fetch(`/api/sample_apk/${filename}`);
@@ -2049,7 +2173,7 @@
                         logConsole(`[!] 未检测到真机设备，通道 A 已智能降级为离线静态深度代码反编译`, false, true);
                     }
                     if (data.data.temp_installed_and_purged) {
-                        showToast('真机沙箱实测完毕', '已完成毫秒级越界行为抓捕并实现端侧零残留静默卸载', 'success');
+                        showToast('真机沙箱实测完毕', '已完成运行时探针采集并实现端侧零残留静默卸载', 'success');
                         logConsole(`[+] 探针取证完毕，已完成真机临时沙箱实例的零残留销毁 (Uninstall Purged)`, true);
                     }
                     renderAuditResult(data.data);
@@ -2232,7 +2356,145 @@
 
             const card = document.getElementById('auditSummaryCard');
             card.classList.remove('hidden');
-            
+
+            let agentVerdictHtml = "";
+            if (d.agent_analysis) {
+                const aa = d.agent_analysis;
+                const baseScore = aa.baseline_score !== undefined ? aa.baseline_score : d.compliance_score;
+                const adjScore = aa.adjusted_score !== undefined ? aa.adjusted_score : baseScore;
+                const conf = aa.confidence_percent || 96.5;
+                const isExempt = aa.verdict_badge === 'EXEMPTION_GRANTED';
+                const isSevere = aa.verdict_badge === 'SEVERE_VIOLATION';
+                const badgeColor = isExempt 
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
+                    : (isSevere ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30');
+
+                let traceRowsHtml = "";
+                (aa.detailed_traces || []).forEach(t => {
+                    const act = t.verdict_action || "维持评定";
+                    const isGood = act.includes("豁免") || act.includes("优化") || act.includes("保留");
+                    const isBad = act.includes("严惩") || act.includes("维持");
+                    const actBadge = isGood 
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
+                        : (isBad ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30');
+
+                    let patchHtml = "";
+                    if (t.targeted_code_patch) {
+                        patchHtml = `
+                            <div class="mt-2 p-2.5 rounded-xl bg-slate-900 text-sky-400 font-mono text-[10.5px] leading-relaxed overflow-x-auto border border-sky-500/20">
+                                <pre class="whitespace-pre-wrap">${escapeHtml(t.targeted_code_patch)}</pre>
+                            </div>
+                        `;
+                    }
+
+                    traceRowsHtml += `
+                        <tr class="border-b border-slate-200/60 dark:border-white/5 text-xs">
+                            <td class="py-2.5 px-3 align-top">
+                                <div class="font-bold text-slate-900 dark:text-white">${escapeHtml(t.rule_name)}</div>
+                                <code class="text-[10px] text-slate-400 font-mono">${escapeHtml(t.rule_id)}</code>
+                            </td>
+                            <td class="py-2.5 px-3 align-top font-mono text-[11px] text-sky-600 dark:text-sky-400 break-all">
+                                ${escapeHtml(t.code_location_trace)}
+                            </td>
+                            <td class="py-2.5 px-3 align-top">
+                                <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${actBadge}">
+                                    ${escapeHtml(act)}
+                                </span>
+                                <div class="mt-1 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    ${escapeHtml(t.root_cause_explanation)}
+                                </div>
+                                ${patchHtml}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                agentVerdictHtml = `
+                    <div class="p-5 rounded-3xl border border-sky-500/30 bg-gradient-to-b from-sky-500/10 via-slate-50/50 to-white/80 dark:from-sky-950/40 dark:via-neutral-900/60 dark:to-neutral-950/80 shadow-md space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-3">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center text-xs shadow-sm">
+                                    <i class="fa-solid fa-microchip-ai text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <h4 class="text-sm font-bold text-slate-900 dark:text-white">合规审计智能体 (Agent) 场景化最小必要性智能裁决意见书</h4>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30">AI+ CONTEXT</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                        推理引擎：<span class="font-semibold text-slate-800 dark:text-slate-200 font-mono">${escapeHtml(aa.agent_provider)}</span> · 法定依据：<span>${escapeHtml(aa.statutory_law_ref)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-sm inline-block">
+                                    ${escapeHtml(aa.verdict_title)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- 双轨比对大胶囊卡 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="p-3 rounded-2xl inner-subcard border border-slate-200/80 dark:border-white/10">
+                                <div class="text-[10px] font-mono text-slate-400">申报品类与法定基线</div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white mt-1">${escapeHtml(aa.app_category_name)}</div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">四部委 39 类必要个人信息标准</div>
+                            </div>
+                            <div class="p-3 rounded-2xl inner-subcard border border-slate-200/80 dark:border-white/10">
+                                <div class="text-[10px] font-mono text-slate-400">机检初筛分 vs Agent 场景修正裁决分</div>
+                                <div class="flex items-baseline space-x-2 mt-1">
+                                    <span class="text-xs text-slate-400 line-through">机检 ${baseScore}分</span>
+                                    <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">Agent ${adjScore}分</span>
+                                    <span class="text-[10px] text-sky-500 font-mono">(置信度 ${conf}%)</span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded-2xl inner-subcard border border-slate-200/80 dark:border-white/10">
+                                <div class="text-[10px] font-mono text-slate-400">申报主营业务用途说明</div>
+                                <div class="text-[11px] text-slate-700 dark:text-slate-300 mt-1 line-clamp-2" title="${escapeHtml(aa.app_description)}">
+                                    ${escapeHtml(aa.app_description)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Agent 综合研判深度意见 -->
+                        <div class="p-3.5 rounded-2xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20 text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                            <div class="font-bold text-sky-800 dark:text-sky-300 mb-1 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-scale-balanced text-xs"></i>
+                                <span>智能体专家场景化综合研判：</span>
+                            </div>
+                            <div class="whitespace-pre-line text-[11px] text-slate-600 dark:text-slate-300">
+                                ${escapeHtml(aa.comprehensive_assessment)}
+                            </div>
+                        </div>
+
+                        <!-- 疑点代码调用位置追溯表 -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-code-fork text-sky-500 text-xs"></i>
+                                    <span>疑点调用链代码位置深度追溯与场景裁决明细</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400 font-mono">责任穿透至类名::方法名与第三方 SDK</span>
+                            </div>
+                            <div class="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-white/10">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-100/70 dark:bg-white/[0.04] text-[10px] font-mono text-slate-500 dark:text-slate-400 border-b border-slate-200/60 dark:border-white/10">
+                                            <th class="py-2 px-3">工信部红线核查项</th>
+                                            <th class="py-2 px-3">DEX 精确调用位置 & 责任归属</th>
+                                            <th class="py-2 px-3">Agent 场景裁决·因果剖析与定向补丁</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${traceRowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             let findingsItems = "";
             d.findings.forEach((f, idx) => {
                 const isCrit = f.rule.severity === 'CRITICAL';
@@ -2248,13 +2510,13 @@
                         crossBadgeHtml = `
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 flex items-center space-x-1 shadow-sm">
                                 <i class="fa-solid fa-crosshairs text-[9px] animate-pulse"></i>
-                                <span>动静坐实 (${f.dynamic_trigger_time || '现行捕获'})</span>
+                                <span>动静印证 (${f.dynamic_trigger_time || '运行时捕获'})</span>
                             </span>
                         `;
                         crossDetailHtml = `
                             <div class="mt-2.5 p-2.5 rounded-xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/25 text-[11px] text-rose-800 dark:text-rose-200 font-sans flex items-start space-x-2">
                                 <i class="fa-solid fa-bolt-lightning text-rose-500 mt-0.5 text-xs shrink-0"></i>
-                                <div><strong>端侧真机沙箱现行抓捕：</strong>${f.verification_note || '协议弹窗前触发真实系统调用，排除死代码误报'}</div>
+                                <div><strong>端侧运行时探针捕获：</strong>${f.verification_note || '协议弹窗前触发真实系统调用，排除死代码误报'}</div>
                             </div>
                         `;
                     } else {
@@ -2574,6 +2836,8 @@
                             </a>
                         </div>
                     </div>
+
+                    ${agentVerdictHtml}
                     ${(d.audit_type === 'dynamic' || d.audit_type === 'hybrid' || (d.dynamic_violations && d.dynamic_violations.length > 0)) ? `
                     <div class="p-4 rounded-3xl inner-subcard border ${d.audit_type === 'hybrid' ? 'border-emerald-500/35 bg-emerald-500/5 dark:bg-emerald-500/10' : 'border-amber-500/35 bg-amber-500/5 dark:bg-amber-500/10'} space-y-3 shadow-sm">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b ${d.audit_type === 'hybrid' ? 'border-emerald-500/20' : 'border-amber-500/20'} pb-2.5">
@@ -2615,7 +2879,7 @@
                                 <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-semibold">首屏启动期行为监听</div>
                             </div>
                             <div class="p-3 rounded-xl bg-white/50 dark:bg-black/40 border border-slate-200/80 dark:border-white/10">
-                                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">动态抓捕现行铁证</div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">运行时探针捕获证据</div>
                                 <div class="text-xs font-bold text-rose-600 dark:text-rose-400 mt-1">${(d.dynamic_violations || []).length} 项现场触发</div>
                                 <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">剪贴板/IMEI/加速度计</div>
                             </div>
@@ -2816,13 +3080,13 @@
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">设备硬件识别码 (IMEI/SN)</td>
                                     <td class="p-2.5 text-sky-600 dark:text-sky-400">命中 TelephonyManager 调用点</td>
-                                    <td class="p-2.5 ${deviceViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${deviceViol ? (deviceViol.trigger_time || '运行期') + ' 触发 (抓获现行)' : '静默与运行窗口期未触发'}</td>
+                                    <td class="p-2.5 ${deviceViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${deviceViol ? (deviceViol.trigger_time || '运行期') + ' 触发 (探针捕获)' : '静默与运行窗口期未触发'}</td>
                                     <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${deviceViol ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${deviceViol ? '确证违规·一票否决' : '已合规放行'}</span></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                     <td class="p-2.5 font-bold text-slate-900 dark:text-white font-sans">未明示静默窃取剪贴板</td>
                                     <td class="p-2.5 text-sky-600 dark:text-sky-400">命中 ClipboardManager 跨类引用</td>
-                                    <td class="p-2.5 ${clipViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${clipViol ? (clipViol.trigger_time || '运行期') + ' 触发 (抓获现行)' : '未发生静默读取'}</td>
+                                    <td class="p-2.5 ${clipViol ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}">${clipViol ? (clipViol.trigger_time || '运行期') + ' 触发 (探针捕获)' : '未发生静默读取'}</td>
                                     <td class="p-2.5"><span class="px-2 py-0.5 rounded-full ${clipViol ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'} font-sans font-bold text-[10px]">${clipViol ? '确证违规·重点通报' : '已合规放行'}</span></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
@@ -2937,409 +3201,507 @@
 
         // 初始化
         const DEFAULT_AUDIT_DATA = {
-            "report_path": "outputs/Compliance_Report_mark.via_20260913_115340.html",
-            "report_filename": "Compliance_Report_mark.via_20260913_115340.html",
-            "app_name": "Via",
-            "package_name": "mark.via",
-            "target_sdk": "35",
-            "permissions_count": 25,
-            "permissions": [
-                        "android.permission.USE_BIOMETRIC",
-                        "android.permission.REQUEST_INSTALL_PACKAGES",
-                        "android.permission.QUERY_ALL_PACKAGES",
-                        "android.permission.WRITE_EXTERNAL_STORAGE",
-                        "android.permission.ACCESS_COARSE_LOCATION",
-                        "android.permission.CREDENTIAL_MANAGER_SET_ORIGIN",
-                        "android.permission.WAKE_LOCK",
-                        "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
-                        "mark.via.permission.BROADCAST",
-                        "android.permission.INTERNET",
-                        "android.permission.VIBRATE",
-                        "com.bbk.launcher2.permission.READ_SETTINGS",
-                        "android.permission.MODIFY_AUDIO_SETTINGS",
-                        "android.permission.USE_FINGERPRINT",
-                        "android.permission.POST_NOTIFICATIONS",
-                        "android.permission.ACCESS_NETWORK_STATE",
-                        "com.google.android.gms.permission.AD_ID",
-                        "com.android.launcher.permission.INSTALL_SHORTCUT",
-                        "android.permission.CAMERA",
-                        "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
-                        "android.permission.ACCESS_FINE_LOCATION",
-                        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-                        "android.permission.ACCESS_WIFI_STATE",
-                        "android.permission.FOREGROUND_SERVICE",
-                        "android.permission.RECORD_AUDIO"
-            ],
-            "compliance_score": 71,
-            "raw_score": 71,
-            "risk_level": "MEDIUM (中风险 - 存在重点通报隐患)",
-            "is_fused": false,
-            "fuse_reason": "",
-            "dimensions": {
-                        "dim_device": {
-                                    "id": "dim_device",
-                                    "name": "设备硬件指纹防护",
-                                    "weight": 25,
-                                    "icon": "fa-microchip",
-                                    "score": 25,
-                                    "deduction": 0
-                        },
-                        "dim_behavior": {
-                                    "id": "dim_behavior",
-                                    "name": "交互规范与传感器防护",
-                                    "weight": 25,
-                                    "icon": "fa-person-walking-dashed-line-arrow-right",
-                                    "score": 15,
-                                    "deduction": 10
-                        },
-                        "dim_permission": {
-                                    "id": "dim_permission",
-                                    "name": "权限边界与生命周期合规",
-                                    "weight": 25,
-                                    "icon": "fa-shield-halved",
-                                    "score": 21,
-                                    "deduction": 4
-                        },
-                        "dim_data": {
-                                    "id": "dim_data",
-                                    "name": "私密数据与防逃逸合规",
-                                    "weight": 25,
-                                    "icon": "fa-lock",
-                                    "score": 10,
-                                    "deduction": 15
-                        }
+    "report_path": "outputs/Compliance_Report_mark.via_20260913_115340.html",
+    "report_filename": "Compliance_Report_mark.via_20260913_115340.html",
+    "app_name": "Via",
+    "package_name": "mark.via",
+    "target_sdk": "35",
+    "permissions_count": 25,
+    "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.QUERY_ALL_PACKAGES",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CREDENTIAL_MANAGER_SET_ORIGIN",
+        "android.permission.WAKE_LOCK",
+        "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+        "mark.via.permission.BROADCAST",
+        "android.permission.INTERNET",
+        "android.permission.VIBRATE",
+        "com.bbk.launcher2.permission.READ_SETTINGS",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "com.google.android.gms.permission.AD_ID",
+        "com.android.launcher.permission.INSTALL_SHORTCUT",
+        "android.permission.CAMERA",
+        "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.RECORD_AUDIO"
+    ],
+    "compliance_score": 71,
+    "raw_score": 71,
+    "risk_level": "MEDIUM (中风险 - 存在重点通报隐患)",
+    "is_fused": false,
+    "fuse_reason": "",
+    "dimensions": {
+        "dim_device": {
+            "id": "dim_device",
+            "name": "设备硬件指纹防护",
+            "weight": 25,
+            "icon": "fa-microchip",
+            "score": 25,
+            "deduction": 0
+        },
+        "dim_behavior": {
+            "id": "dim_behavior",
+            "name": "交互规范与传感器防护",
+            "weight": 25,
+            "icon": "fa-person-walking-dashed-line-arrow-right",
+            "score": 15,
+            "deduction": 10
+        },
+        "dim_permission": {
+            "id": "dim_permission",
+            "name": "权限边界与生命周期合规",
+            "weight": 25,
+            "icon": "fa-shield-halved",
+            "score": 21,
+            "deduction": 4
+        },
+        "dim_data": {
+            "id": "dim_data",
+            "name": "私密数据与防逃逸合规",
+            "weight": 25,
+            "icon": "fa-lock",
+            "score": 10,
+            "deduction": 15
+        }
+    },
+    "findings": [
+        {
+            "rule": {
+                "id": "MIIT-04-SHAKE-SENSOR",
+                "dimension": "dim_behavior",
+                "name": "开屏‘摇一摇’传感器高频监听与误触风险",
+                "category": "传感器行为",
+                "severity": "HIGH",
+                "base_deduction": 5,
+                "max_deduction": 8,
+                "desc": "高频注册加速度计/陀螺仪传感器，违反工信部开屏转动角度必须大于35度、持续不低于3秒的技术规范",
+                "policy_ref": "工信部信管函〔2023〕26号第十条 · 电信终端产业协会 T/TAF 077.1-2022 / TAF-T-004-2022《摇一摇防误触最新规范》",
+                "remediation_principle": "【TAF-2022 国标三重滤波阻尼】开屏广告摇一摇严禁超灵敏触发。必须严格遵循：加速度≥15m/s²、旋转角度≥35°、晃动持续时间≥3.0秒，并提供常驻显著的“跳过/关闭”按键。",
+                "remediation_code": "// [合规代码补丁] AppGuard-Patch-04: TAF-077-2022 标准防误触‘摇一摇’传感器代理\npublic class TafCompliantShakeDetector implements SensorEventListener {\n    private static final float MIN_ACC_THRESHOLD = 15.0f; // TAF规范: >= 15 m/s²\n    private static final float MIN_ROT_DEG = 35.0f;       // TAF规范: >= 35°\n    private static final long MIN_DURATION_MS = 3000L;    // TAF规范: 持续>= 3.0s\n    private long mShakeStartTime = 0;\n\n    @Override\n    public void onSensorChanged(SensorEvent event) {\n        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {\n            float gX = event.values[0], gY = event.values[1], gZ = event.values[2];\n            double totalAcc = Math.sqrt(gX * gX + gY * gY + gZ * gZ) - 9.8;\n            if (totalAcc >= MIN_ACC_THRESHOLD) {\n                if (mShakeStartTime == 0) mShakeStartTime = System.currentTimeMillis();\n                long elapsed = System.currentTimeMillis() - mShakeStartTime;\n                if (elapsed >= MIN_DURATION_MS) {\n                    triggerAdJump(); // 唯有满足三重国标阈值方可触发交互\n                    mShakeStartTime = 0;\n                }\n            } else {\n                mShakeStartTime = 0; // 不满足阈值立即重置，杜绝行车颠簸误触\n            }\n        }\n    }\n}",
+                "remediation": "接入合规传感器代理类（CompliantSensorProxy），对晃动加速度及旋转角度设置硬件级 35 度与 15m/s² 阈值滤波，过滤轻微晃动误触。",
+                "calculated_points": 5,
+                "points": 5
             },
-            "findings": [
-                        {
-                                    "rule": {
-                                                "id": "MIIT-04-SHAKE-SENSOR",
-                                                "dimension": "dim_behavior",
-                                                "name": "开屏‘摇一摇’传感器高频监听与误触风险",
-                                                "category": "传感器行为",
-                                                "severity": "HIGH",
-                                                "base_deduction": 5,
-                                                "max_deduction": 8,
-                                                "desc": "高频注册加速度计/陀螺仪传感器，违反工信部开屏转动角度必须大于35度、持续不低于3秒的技术规范",
-                                                "policy_ref": "工信部信管函〔2023〕26号第十条 · 电信终端产业协会 T/TAF 077.1-2022 / TAF-T-004-2022《摇一摇防误触最新规范》",
-                                                "remediation_principle": "【TAF-2022 国标三重滤波阻尼】开屏广告摇一摇严禁超灵敏触发。必须严格遵循：加速度≥15m/s²、旋转角度≥35°、晃动持续时间≥3.0秒，并提供常驻显著的“跳过/关闭”按键。",
-                                                "remediation_code": "// [合规代码补丁] AppGuard-Patch-04: TAF-077-2022 标准防误触‘摇一摇’传感器代理\npublic class TafCompliantShakeDetector implements SensorEventListener {\n    private static final float MIN_ACC_THRESHOLD = 15.0f; // TAF规范: >= 15 m/s²\n    private static final float MIN_ROT_DEG = 35.0f;       // TAF规范: >= 35°\n    private static final long MIN_DURATION_MS = 3000L;    // TAF规范: 持续>= 3.0s\n    private long mShakeStartTime = 0;\n\n    @Override\n    public void onSensorChanged(SensorEvent event) {\n        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {\n            float gX = event.values[0], gY = event.values[1], gZ = event.values[2];\n            double totalAcc = Math.sqrt(gX * gX + gY * gY + gZ * gZ) - 9.8;\n            if (totalAcc >= MIN_ACC_THRESHOLD) {\n                if (mShakeStartTime == 0) mShakeStartTime = System.currentTimeMillis();\n                long elapsed = System.currentTimeMillis() - mShakeStartTime;\n                if (elapsed >= MIN_DURATION_MS) {\n                    triggerAdJump(); // 唯有满足三重国标阈值方可触发交互\n                    mShakeStartTime = 0;\n                }\n            } else {\n                mShakeStartTime = 0; // 不满足阈值立即重置，杜绝行车颠簸误触\n            }\n        }\n    }\n}",
-                                                "remediation": "接入合规传感器代理类（CompliantSensorProxy），对晃动加速度及旋转角度设置硬件级 35 度与 15m/s² 阈值滤波，过滤轻微晃动误触。",
-                                                "calculated_points": 5,
-                                                "points": 5
-                                    },
-                                    "count": 2,
-                                    "details": [
-                                                {
-                                                            "target_api": "android.hardware.SensorManager -> registerListener",
-                                                            "caller_class": "com.bytedance.sdk.openadsdk.core.ShakeSensorHelper",
-                                                            "caller_method": "startListening()",
-                                                            "culprit": "穿山甲广告 (Pangle / ByteDance)",
-                                                            "offset": "0x38"
-                                                },
-                                                {
-                                                            "target_api": "android.hardware.SensorManager -> registerListener",
-                                                            "caller_class": "mark.via.browser.MotionController",
-                                                            "caller_method": "initSensor()",
-                                                            "culprit": "应用自身业务模块",
-                                                            "offset": "0x1a"
-                                                }
-                                    ]
-                        },
-                        {
-                                    "rule": {
-                                                "id": "MIIT-05-SILENT-DOWNLOAD",
-                                                "dimension": "dim_behavior",
-                                                "name": "诱导点击与静默下载安装 APK",
-                                                "category": "交互行为",
-                                                "severity": "HIGH",
-                                                "base_deduction": 5,
-                                                "max_deduction": 8,
-                                                "desc": "在广告交互中未弹窗明示应用主体及权限，私自调用系统下载器向后台推送安装包",
-                                                "policy_ref": "工信部信管函〔2020〕164号第三项“欺骗误导强迫用户” · 工信部信管函〔2023〕26号第八条（明示下载与安装）",
-                                                "remediation_principle": "【显式告知与二次确认阻断】严禁隐式排队静默下载；广告点击必须弹出二级确认 Dialog，展示应用名称、开发主体、安装包大小及所需权限清单，经二次确认方可启动下载。",
-                                                "remediation_code": "// [合规代码补丁] AppGuard-Patch-05: 显式二次确认弹窗 (阻断静默后台下载)\npublic class CompliantDownloadManager {\n    public static void enqueueWithConsent(Context ctx, AppDownloadMeta meta) {\n        // 1. 强制弹出符合工信部规范的下载确认对话框\n        new AlertDialog.Builder(ctx)\n            .setTitle(\"应用下载确认\")\n            .setMessage(\"应用名称: \" + meta.appName + \"\n\" +\n                         \"开发企业: \" + meta.developerCompany + \"\n\" +\n                         \"版本信息: v\" + meta.versionName + \" (\" + meta.sizeMb + \" MB)\n\" +\n                         \"权限清单: 存储空间、网络通信\")\n            .setPositiveButton(\"立即下载\", (dialog, which) -> {\n                // 2. 仅在用户显式确认后提交系统下载队列\n                DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);\n                DownloadManager.Request req = new DownloadManager.Request(Uri.parse(meta.downloadUrl));\n                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);\n                dm.enqueue(req);\n            })\n            .setNegativeButton(\"取消\", null)\n            .show();\n    }\n}",
-                                                "remediation": "严禁广告 SDK 或业务代码私自提交下载任务，必须弹出显式确认框标明应用名称、版本、开发者主体及所需权限。",
-                                                "calculated_points": 5,
-                                                "points": 5
-                                    },
-                                    "count": 2,
-                                    "details": [
-                                                {
-                                                            "target_api": "android.app.DownloadManager -> enqueue",
-                                                            "caller_class": "com.qq.e.comm.plugin.apk.DownloadService",
-                                                            "caller_method": "silentEnqueue()",
-                                                            "culprit": "腾讯优量汇广告 (Tencent GDT)",
-                                                            "offset": "0xbc"
-                                                },
-                                                {
-                                                            "target_api": "android.content.pm.PackageInstaller$Session -> commit",
-                                                            "caller_class": "com.qq.e.comm.plugin.apk.InstallBridge",
-                                                            "caller_method": "commitSession()",
-                                                            "culprit": "腾讯优量汇广告 (Tencent GDT)",
-                                                            "offset": "0x44"
-                                                }
-                                    ]
-                        },
-                        {
-                                    "rule": {
-                                                "id": "MIIT-09-AUTOSTART-WAKE",
-                                                "dimension": "dim_permission",
-                                                "name": "频繁自启动与‘全家桶’链式唤醒保活",
-                                                "category": "生命周期",
-                                                "severity": "MEDIUM",
-                                                "base_deduction": 3,
-                                                "max_deduction": 5,
-                                                "desc": "注册开机、解锁、网络变更等广播自启，或通过隐式 Intent 链式唤醒关联应用全家桶",
-                                                "policy_ref": "工信部信管函〔2020〕164号第四项“应用频繁自启动和关联唤醒” · 工信部信管函〔2023〕26号第九条",
-                                                "remediation_principle": "【去关联化与受控调度】删除开机广播 RECEIVE_BOOT_COMPLETED 及网络变更自启广播；停用跨进程/跨应用隐式广播链式唤醒；后台离线任务一律迁移至系统标准 WorkManager 受控调度。",
-                                                "remediation_code": "// [合规代码补丁] AppGuard-Patch-09: 使用 WorkManager 替代守护进程自启保活\npublic class CompliantSyncScheduler {\n    public static void schedulePeriodicTask(Context context) {\n        // 使用系统级 WorkManager 受控调度，遵守电池优化规范，不占用前台自启通道\n        PeriodicWorkRequest syncWork = new PeriodicWorkRequest.Builder(DataSyncWorker.class, 6, TimeUnit.HOURS)\n            .setConstraints(new Constraints.Builder()\n                .setRequiredNetworkType(NetworkType.UNMETERED) // 仅在 WiFi 连接时同步\n                .setRequiresBatteryNotLow(true)               // 电量充沛才执行\n                .build())\n            .build();\n        WorkManager.getInstance(context).enqueueUniquePeriodicWork(\"ComplianceSync\", ExistingPeriodicWorkPolicy.KEEP, syncWork);\n    }\n}",
-                                                "remediation": "移除不必要的自启动广播监听器；禁止利用同厂商 SDK 相互拉起，遵循 Android 规范生命周期限制。",
-                                                "calculated_points": 4,
-                                                "points": 4
-                                    },
-                                    "count": 1,
-                                    "details": [
-                                                {
-                                                            "target_api": "android.content.Context -> startForegroundService",
-                                                            "caller_class": "cn.jpush.android.service.DaemonService",
-                                                            "caller_method": "keepAlive()",
-                                                            "culprit": "极光推送 (JPush)",
-                                                            "offset": "0x12"
-                                                }
-                                    ]
-                        },
-                        {
-                                    "rule": {
-                                                "id": "MIIT-10-CLIPBOARD",
-                                                "dimension": "dim_data",
-                                                "name": "私自静默读取剪贴板信息",
-                                                "category": "剪贴板隐私",
-                                                "severity": "MEDIUM",
-                                                "base_deduction": 3,
-                                                "max_deduction": 5,
-                                                "desc": "未经用户明确交互触发静默读取剪贴板内容，存在窃取淘口令、银行卡号等隐私隐患",
-                                                "policy_ref": "《个人信息保护法》第十三/十七条 · 工信部信管函〔2023〕26号第七条 · Android 12+ 剪贴板安全感知机制",
-                                                "remediation_principle": "【用户明确手势绑定】严禁在 Application 初始化、Activity onCreate 或无交互时读取剪贴板淘口令；必须严格限制在用户主动点击“粘贴”按键或长按输入框时方可触发 getPrimaryClip()。",
-                                                "remediation_code": "// [合规代码补丁] AppGuard-Patch-10: 绑定主动点击手势的安全剪贴板读取器\npublic class CompliantClipboardHelper {\n    public static void readOnUserGesture(Activity activity, View pasteButton, Consumer<String> onTextPasted) {\n        // 严禁冷启动自动嗅探，必须绑定在 View.OnClickListener 的主动触摸手势上\n        pasteButton.setOnClickListener(v -> {\n            ClipboardManager cm = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);\n            if (cm != null && cm.hasPrimaryClip()) {\n                ClipData clipData = cm.getPrimaryClip();\n                if (clipData != null && clipData.getItemCount() > 0) {\n                    CharSequence text = clipData.getItemAt(0).coerceToText(activity);\n                    if (text != null && text.length() > 0) {\n                        onTextPasted.accept(text.toString());\n                    }\n                }\n            }\n        });\n    }\n}",
-                                                "remediation": "禁止在 Activity 启动时自动触发剪贴板读取，必须由用户明确点击粘贴操作时方可触发。",
-                                                "calculated_points": 5,
-                                                "points": 5
-                                    },
-                                    "count": 1,
-                                    "details": [
-                                                {
-                                                            "target_api": "android.content.ClipboardManager -> getPrimaryClip",
-                                                            "caller_class": "mark.via.browser.SearchBoxView",
-                                                            "caller_method": "autoPasteCheck()",
-                                                            "culprit": "应用自身业务模块",
-                                                            "offset": "0x24"
-                                                }
-                                    ]
-                        },
-                        {
-                                    "rule": {
-                                                "id": "MIIT-11-STORAGE-PHOTO",
-                                                "dimension": "dim_data",
-                                                "name": "逃逸分区存储扫描全盘文件与相册",
-                                                "category": "存储隐私",
-                                                "severity": "HIGH",
-                                                "base_deduction": 5,
-                                                "max_deduction": 8,
-                                                "desc": "违规索取全盘文件管理权限，或后台扫描用户公共相册媒体文件的 Exif GPS 定位数据",
-                                                "policy_ref": "《个人信息保护法》第十三/二十八条 · 工信部信管函〔2020〕164号第二项 · Android 11+ Scoped Storage 分区存储规范",
-                                                "remediation_principle": "【分区存储与系统 PhotoPicker 隔离】移除 MANAGE_EXTERNAL_STORAGE 滥用声明；应用沙盒内读写使用 context.getExternalFilesDir()；图片选择接入 Android 系统级 PhotoPicker 或 SAF。",
-                                                "remediation_code": "// [合规代码补丁] AppGuard-Patch-11: 接入系统 PhotoPicker 替代全盘存储扫描权限\npublic class MediaPickerComplianceHelper {\n    public static void launchPhotoPicker(ComponentActivity activity, ActivityResultLauncher<PickVisualMediaRequest> launcher) {\n        // Android 13+ / Jetpack PhotoPicker: 无需向用户申请任何读取存储权限即可安全选图\n        launcher.launch(new PickVisualMediaRequest.Builder()\n            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)\n            .build());\n    }\n}",
-                                                "remediation": "严格遵守 Android 11+ 分区存储规范，严禁申请 MANAGE_EXTERNAL_STORAGE；选取照片应接入系统 PhotoPicker。",
-                                                "calculated_points": 5,
-                                                "points": 5
-                                    },
-                                    "count": 1,
-                                    "details": [
-                                                {
-                                                            "target_api": "android.os.Environment -> getExternalStorageDirectory",
-                                                            "caller_class": "mark.via.utils.FileUtils",
-                                                            "caller_method": "scanLocalMedia()",
-                                                            "culprit": "应用自身业务模块",
-                                                            "offset": "0x1c"
-                                                }
-                                    ]
-                        },
-                        {
-                                    "rule": {
-                                                "id": "MIIT-12-DYNAMIC-DEX",
-                                                "dimension": "dim_data",
-                                                "name": "恶意动态类加载与反射逃逸对抗",
-                                                "category": "安全对抗",
-                                                "severity": "MEDIUM",
-                                                "base_deduction": 3,
-                                                "max_deduction": 5,
-                                                "desc": "利用 DexClassLoader 动态下发未经审查的加密字节码，或大量使用反射躲避静态特征审查",
-                                                "policy_ref": "工信部移动应用程序分发上架合规规范 · 《网络安全法》第二十二条 · 主流应用市场开发者代码安全标准",
-                                                "remediation_principle": "【静态签名固化与下线外部下发】严禁在运行时从远程服务器下载解密可执行 Dex/So 文件并调用 DexClassLoader 加载；所有业务模块和 SDK 代码必须在发版时打入固定安装包并做签名校验。",
-                                                "remediation_code": "// [合规代码补丁] AppGuard-Patch-12: 废弃外部动态 Dex 下发，采用静态签名校验加载\npublic class CompliantPluginLoader {\n    public static void loadAuditedPlugin(Context context, File apkFile, String expectedSha256) throws Exception {\n        // 1. 强力校验待加载 APK 的 SHA-256 签名指纹，严防中间人篡改或投毒\n        String actualSha256 = DigestUtils.sha256Hex(new FileInputStream(apkFile));\n        if (!actualSha256.equalsIgnoreCase(expectedSha256)) {\n            throw new SecurityException(\"[AppGuard 合规拦截] 插件签名与安全基线报备指纹不一致，拒绝加载！\");\n        }\n        // 2. 存放在应用内部不可导出的只读目录 code_cache 中\n        File optDir = context.getCodeCacheDir();\n        new DexClassLoader(apkFile.getAbsolutePath(), optDir.getAbsolutePath(), null, context.getClassLoader());\n    }\n}",
-                                                "remediation": "下线未备案的热更新 Dex 下发通道；核心业务敏感接口显式声明调用，避免对抗性反射。",
-                                                "calculated_points": 5,
-                                                "points": 5
-                                    },
-                                    "count": 1,
-                                    "details": [
-                                                {
-                                                            "target_api": "dalvik.system.DexClassLoader -> loadClass",
-                                                            "caller_class": "com.bytedance.pangle.plugin.PluginClassLoader",
-                                                            "caller_method": "loadPluginClass()",
-                                                            "culprit": "穿山甲广告 (Pangle / ByteDance)",
-                                                            "offset": "0x8"
-                                                }
-                                    ]
-                        }
-            ],
-            "sdk_attribution": {
-                        "total_calls": 8,
-                        "host_calls": 3,
-                        "host_pct": 37.5,
-                        "sdk_calls": 5,
-                        "sdk_pct": 62.5,
-                        "sdk_list": [
-                                    {
-                                                "name": "穿山甲广告 (Pangle / ByteDance)",
-                                                "count": 2,
-                                                "percentage": 25.0,
-                                                "rules": [
-                                                            "开屏‘摇一摇’传感器高频监听与误触风险",
-                                                            "恶意动态类加载与反射逃逸对抗"
-                                                ],
-                                                "severities": [
-                                                            "HIGH",
-                                                            "MEDIUM"
-                                                ],
-                                                "sample_calls": [
-                                                            {
-                                                                        "api": "android.hardware.SensorManager -> registerListener",
-                                                                        "caller": "com.bytedance.sdk.openadsdk.core.ShakeSensorHelper->startListening()"
-                                                            },
-                                                            {
-                                                                        "api": "dalvik.system.DexClassLoader -> loadClass",
-                                                                        "caller": "com.bytedance.pangle.plugin.PluginClassLoader->loadPluginClass()"
-                                                            }
-                                                ],
-                                                "action_advice": "广告联盟 SDK：必须在用户同意《隐私政策》后延时初始化，并调用 setPrivacyCompliance(true) 模式，与厂商补签《个人信息处理连带合规协议》。"
-                                    },
-                                    {
-                                                "name": "腾讯优量汇广告 (Tencent GDT)",
-                                                "count": 2,
-                                                "percentage": 25.0,
-                                                "rules": [
-                                                            "诱导点击与静默下载安装 APK"
-                                                ],
-                                                "severities": [
-                                                            "HIGH"
-                                                ],
-                                                "sample_calls": [
-                                                            {
-                                                                        "api": "android.app.DownloadManager -> enqueue",
-                                                                        "caller": "com.qq.e.comm.plugin.apk.DownloadService->silentEnqueue()"
-                                                            },
-                                                            {
-                                                                        "api": "android.content.pm.PackageInstaller$Session -> commit",
-                                                                        "caller": "com.qq.e.comm.plugin.apk.InstallBridge->commitSession()"
-                                                            }
-                                                ],
-                                                "action_advice": "广告联盟 SDK：必须在用户同意《隐私政策》后延时初始化，并调用 setPrivacyCompliance(true) 模式，与厂商补签《个人信息处理连带合规协议》。"
-                                    },
-                                    {
-                                                "name": "极光推送 (JPush)",
-                                                "count": 1,
-                                                "percentage": 12.5,
-                                                "rules": [
-                                                            "频繁自启动与‘全家桶’链式唤醒保活"
-                                                ],
-                                                "severities": [
-                                                            "MEDIUM"
-                                                ],
-                                                "sample_calls": [
-                                                            {
-                                                                        "api": "android.content.Context -> startForegroundService",
-                                                                        "caller": "cn.jpush.android.service.DaemonService->keepAlive()"
-                                                            }
-                                                ],
-                                                "action_advice": "消息推送 SDK：停用广播链式唤醒保活通道，关闭后台静默读取设备标识与应用列表，升级至工信部合规版本。"
-                                    }
-                        ],
-                        "sdk_count": 3,
-                        "primary_offender": "穿山甲广告 (Pangle / ByteDance)",
-                        "accountability_verdict": "经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方集成 SDK 违规占比达 62.5%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
-            },
-            "file_size_mb": 2.53,
-            "payload_mb": 1.1,
-            "filter_ratio": "56.5%",
-            "elapsed": 4.2,
-            "md5": "fa60e1326e0ca1b415041011f733f4f6",
-            "sha256": "f891aabe59f7e2899f6d93cfc682a9c90b69aa9fa9bc2010c897617450f2afba",
-            "timeline": [
-                        {
-                                    "time": "T+0.02s",
-                                    "stage": "进程创建",
-                                    "event": "Zygote 孵化进程，包名 [mark.via]，分配 Linux 沙箱独立 UID",
-                                    "level": "INFO",
-                                    "verdict": "正常"
-                        },
-                        {
-                                    "time": "T+0.15s",
-                                    "stage": "组件装载",
-                                    "event": "Application.attachBaseContext() 执行，初始化第三方 SDK 框架与插件",
-                                    "level": "INFO",
-                                    "verdict": "正常"
-                        },
-                        {
-                                    "time": "T+0.38s",
-                                    "stage": "主线程冷启动",
-                                    "event": "调用 ClipboardManager.getPrimaryClip() 读取剪贴板 (此时用户无主动粘贴行为)",
-                                    "level": "MEDIUM",
-                                    "verdict": "违规：静默监听系统剪贴板，涉嫌淘口令窃取与跨端数据画像"
-                        },
-                        {
-                                    "time": "T+0.45s",
-                                    "stage": "动态模块装载",
-                                    "event": "调用 DexClassLoader/PathClassLoader.loadClass() 动态反射加载外部字节码",
-                                    "level": "MEDIUM",
-                                    "verdict": "合规风险：存在动态下发未经备案代码以逃逸静态审查的隐患"
-                        },
-                        {
-                                    "time": "T+0.65s",
-                                    "stage": "首屏渲染",
-                                    "event": "MainActivity.onCreate() 完成绘制，首屏/开屏广告位启动加载",
-                                    "level": "INFO",
-                                    "verdict": "正常"
-                        },
-                        {
-                                    "time": "T+0.88s",
-                                    "stage": "开屏广告曝光",
-                                    "event": "注册 SensorManager.registerListener(TYPE_ACCELEROMETER) (默认上报率，未配置角速度滤波与主动摇晃门槛)",
-                                    "level": "HIGH",
-                                    "verdict": "严重违规：开屏‘摇一摇’高频监听，极易导致日常手持微晃诱发强制跳转"
-                        },
-                        {
-                                    "time": "T+1.10s",
-                                    "stage": "广告行为响应",
-                                    "event": "调用 DownloadManager.enqueue() 向系统下载服务静默提交 APK 安装包下载任务",
-                                    "level": "HIGH",
-                                    "verdict": "严重违规：诱导点击后未弹窗明示主体并私自触发静默下载"
-                        },
-                        {
-                                    "time": "T+1.28s",
-                                    "stage": "存储访问穿透",
-                                    "event": "调用 Environment.getExternalStorageDirectory() 遍历公共存储目录与相册资源",
-                                    "level": "HIGH",
-                                    "verdict": "违规：逃逸 Android 分区存储机制，超范围检索全盘与相册"
-                        },
-                        {
-                                    "time": "T+1.72s",
-                                    "stage": "保活与全家桶协同",
-                                    "event": "调用 Context.startForegroundService() 或 JobScheduler 注册常驻保活与链式唤醒",
-                                    "level": "MEDIUM",
-                                    "verdict": "合规隐患：频繁自启动与跨应用链式唤醒"
-                        }
+            "count": 2,
+            "details": [
+                {
+                    "target_api": "android.hardware.SensorManager -> registerListener",
+                    "caller_class": "com.bytedance.sdk.openadsdk.core.ShakeSensorHelper",
+                    "caller_method": "startListening()",
+                    "culprit": "穿山甲广告 (Pangle / ByteDance)",
+                    "offset": "0x38"
+                },
+                {
+                    "target_api": "android.hardware.SensorManager -> registerListener",
+                    "caller_class": "mark.via.browser.MotionController",
+                    "caller_method": "initSensor()",
+                    "culprit": "应用自身业务模块",
+                    "offset": "0x1a"
+                }
             ]
+        },
+        {
+            "rule": {
+                "id": "MIIT-05-SILENT-DOWNLOAD",
+                "dimension": "dim_behavior",
+                "name": "诱导点击与静默下载安装 APK",
+                "category": "交互行为",
+                "severity": "HIGH",
+                "base_deduction": 5,
+                "max_deduction": 8,
+                "desc": "在广告交互中未弹窗明示应用主体及权限，私自调用系统下载器向后台推送安装包",
+                "policy_ref": "工信部信管函〔2020〕164号第三项“欺骗误导强迫用户” · 工信部信管函〔2023〕26号第八条（明示下载与安装）",
+                "remediation_principle": "【显式告知与二次确认阻断】严禁隐式排队静默下载；广告点击必须弹出二级确认 Dialog，展示应用名称、开发主体、安装包大小及所需权限清单，经二次确认方可启动下载。",
+                "remediation_code": "// [合规代码补丁] AppGuard-Patch-05: 显式二次确认弹窗 (阻断静默后台下载)\npublic class CompliantDownloadManager {\n    public static void enqueueWithConsent(Context ctx, AppDownloadMeta meta) {\n        // 1. 强制弹出符合工信部规范的下载确认对话框\n        new AlertDialog.Builder(ctx)\n            .setTitle(\"应用下载确认\")\n            .setMessage(\"应用名称: \" + meta.appName + \"\n\" +\n                         \"开发企业: \" + meta.developerCompany + \"\n\" +\n                         \"版本信息: v\" + meta.versionName + \" (\" + meta.sizeMb + \" MB)\n\" +\n                         \"权限清单: 存储空间、网络通信\")\n            .setPositiveButton(\"立即下载\", (dialog, which) -> {\n                // 2. 仅在用户显式确认后提交系统下载队列\n                DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);\n                DownloadManager.Request req = new DownloadManager.Request(Uri.parse(meta.downloadUrl));\n                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);\n                dm.enqueue(req);\n            })\n            .setNegativeButton(\"取消\", null)\n            .show();\n    }\n}",
+                "remediation": "严禁广告 SDK 或业务代码私自提交下载任务，必须弹出显式确认框标明应用名称、版本、开发者主体及所需权限。",
+                "calculated_points": 5,
+                "points": 5
+            },
+            "count": 2,
+            "details": [
+                {
+                    "target_api": "android.app.DownloadManager -> enqueue",
+                    "caller_class": "com.qq.e.comm.plugin.apk.DownloadService",
+                    "caller_method": "silentEnqueue()",
+                    "culprit": "腾讯优量汇广告 (Tencent GDT)",
+                    "offset": "0xbc"
+                },
+                {
+                    "target_api": "android.content.pm.PackageInstaller$Session -> commit",
+                    "caller_class": "com.qq.e.comm.plugin.apk.InstallBridge",
+                    "caller_method": "commitSession()",
+                    "culprit": "腾讯优量汇广告 (Tencent GDT)",
+                    "offset": "0x44"
+                }
+            ]
+        },
+        {
+            "rule": {
+                "id": "MIIT-09-AUTOSTART-WAKE",
+                "dimension": "dim_permission",
+                "name": "频繁自启动与‘全家桶’链式唤醒保活",
+                "category": "生命周期",
+                "severity": "MEDIUM",
+                "base_deduction": 3,
+                "max_deduction": 5,
+                "desc": "注册开机、解锁、网络变更等广播自启，或通过隐式 Intent 链式唤醒关联应用全家桶",
+                "policy_ref": "工信部信管函〔2020〕164号第四项“应用频繁自启动和关联唤醒” · 工信部信管函〔2023〕26号第九条",
+                "remediation_principle": "【去关联化与受控调度】删除开机广播 RECEIVE_BOOT_COMPLETED 及网络变更自启广播；停用跨进程/跨应用隐式广播链式唤醒；后台离线任务一律迁移至系统标准 WorkManager 受控调度。",
+                "remediation_code": "// [合规代码补丁] AppGuard-Patch-09: 使用 WorkManager 替代守护进程自启保活\npublic class CompliantSyncScheduler {\n    public static void schedulePeriodicTask(Context context) {\n        // 使用系统级 WorkManager 受控调度，遵守电池优化规范，不占用前台自启通道\n        PeriodicWorkRequest syncWork = new PeriodicWorkRequest.Builder(DataSyncWorker.class, 6, TimeUnit.HOURS)\n            .setConstraints(new Constraints.Builder()\n                .setRequiredNetworkType(NetworkType.UNMETERED) // 仅在 WiFi 连接时同步\n                .setRequiresBatteryNotLow(true)               // 电量充沛才执行\n                .build())\n            .build();\n        WorkManager.getInstance(context).enqueueUniquePeriodicWork(\"ComplianceSync\", ExistingPeriodicWorkPolicy.KEEP, syncWork);\n    }\n}",
+                "remediation": "移除不必要的自启动广播监听器；禁止利用同厂商 SDK 相互拉起，遵循 Android 规范生命周期限制。",
+                "calculated_points": 4,
+                "points": 4
+            },
+            "count": 1,
+            "details": [
+                {
+                    "target_api": "android.content.Context -> startForegroundService",
+                    "caller_class": "cn.jpush.android.service.DaemonService",
+                    "caller_method": "keepAlive()",
+                    "culprit": "极光推送 (JPush)",
+                    "offset": "0x12"
+                }
+            ]
+        },
+        {
+            "rule": {
+                "id": "MIIT-10-CLIPBOARD",
+                "dimension": "dim_data",
+                "name": "私自静默读取剪贴板信息",
+                "category": "剪贴板隐私",
+                "severity": "MEDIUM",
+                "base_deduction": 3,
+                "max_deduction": 5,
+                "desc": "未经用户明确交互触发静默读取剪贴板内容，存在窃取淘口令、银行卡号等隐私隐患",
+                "policy_ref": "《个人信息保护法》第十三/十七条 · 工信部信管函〔2023〕26号第七条 · Android 12+ 剪贴板安全感知机制",
+                "remediation_principle": "【用户明确手势绑定】严禁在 Application 初始化、Activity onCreate 或无交互时读取剪贴板淘口令；必须严格限制在用户主动点击“粘贴”按键或长按输入框时方可触发 getPrimaryClip()。",
+                "remediation_code": "// [合规代码补丁] AppGuard-Patch-10: 绑定主动点击手势的安全剪贴板读取器\npublic class CompliantClipboardHelper {\n    public static void readOnUserGesture(Activity activity, View pasteButton, Consumer<String> onTextPasted) {\n        // 严禁冷启动自动嗅探，必须绑定在 View.OnClickListener 的主动触摸手势上\n        pasteButton.setOnClickListener(v -> {\n            ClipboardManager cm = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);\n            if (cm != null && cm.hasPrimaryClip()) {\n                ClipData clipData = cm.getPrimaryClip();\n                if (clipData != null && clipData.getItemCount() > 0) {\n                    CharSequence text = clipData.getItemAt(0).coerceToText(activity);\n                    if (text != null && text.length() > 0) {\n                        onTextPasted.accept(text.toString());\n                    }\n                }\n            }\n        });\n    }\n}",
+                "remediation": "禁止在 Activity 启动时自动触发剪贴板读取，必须由用户明确点击粘贴操作时方可触发。",
+                "calculated_points": 5,
+                "points": 5
+            },
+            "count": 1,
+            "details": [
+                {
+                    "target_api": "android.content.ClipboardManager -> getPrimaryClip",
+                    "caller_class": "mark.via.browser.SearchBoxView",
+                    "caller_method": "autoPasteCheck()",
+                    "culprit": "应用自身业务模块",
+                    "offset": "0x24"
+                }
+            ]
+        },
+        {
+            "rule": {
+                "id": "MIIT-11-STORAGE-PHOTO",
+                "dimension": "dim_data",
+                "name": "逃逸分区存储扫描全盘文件与相册",
+                "category": "存储隐私",
+                "severity": "HIGH",
+                "base_deduction": 5,
+                "max_deduction": 8,
+                "desc": "违规索取全盘文件管理权限，或后台扫描用户公共相册媒体文件的 Exif GPS 定位数据",
+                "policy_ref": "《个人信息保护法》第十三/二十八条 · 工信部信管函〔2020〕164号第二项 · Android 11+ Scoped Storage 分区存储规范",
+                "remediation_principle": "【分区存储与系统 PhotoPicker 隔离】移除 MANAGE_EXTERNAL_STORAGE 滥用声明；应用沙盒内读写使用 context.getExternalFilesDir()；图片选择接入 Android 系统级 PhotoPicker 或 SAF。",
+                "remediation_code": "// [合规代码补丁] AppGuard-Patch-11: 接入系统 PhotoPicker 替代全盘存储扫描权限\npublic class MediaPickerComplianceHelper {\n    public static void launchPhotoPicker(ComponentActivity activity, ActivityResultLauncher<PickVisualMediaRequest> launcher) {\n        // Android 13+ / Jetpack PhotoPicker: 无需向用户申请任何读取存储权限即可安全选图\n        launcher.launch(new PickVisualMediaRequest.Builder()\n            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)\n            .build());\n    }\n}",
+                "remediation": "严格遵守 Android 11+ 分区存储规范，严禁申请 MANAGE_EXTERNAL_STORAGE；选取照片应接入系统 PhotoPicker。",
+                "calculated_points": 5,
+                "points": 5
+            },
+            "count": 1,
+            "details": [
+                {
+                    "target_api": "android.os.Environment -> getExternalStorageDirectory",
+                    "caller_class": "mark.via.utils.FileUtils",
+                    "caller_method": "scanLocalMedia()",
+                    "culprit": "应用自身业务模块",
+                    "offset": "0x1c"
+                }
+            ]
+        },
+        {
+            "rule": {
+                "id": "MIIT-12-DYNAMIC-DEX",
+                "dimension": "dim_data",
+                "name": "恶意动态类加载与反射逃逸对抗",
+                "category": "安全对抗",
+                "severity": "MEDIUM",
+                "base_deduction": 3,
+                "max_deduction": 5,
+                "desc": "利用 DexClassLoader 动态下发未经审查的加密字节码，或大量使用反射躲避静态特征审查",
+                "policy_ref": "工信部移动应用程序分发上架合规规范 · 《网络安全法》第二十二条 · 主流应用市场开发者代码安全标准",
+                "remediation_principle": "【静态签名固化与下线外部下发】严禁在运行时从远程服务器下载解密可执行 Dex/So 文件并调用 DexClassLoader 加载；所有业务模块和 SDK 代码必须在发版时打入固定安装包并做签名校验。",
+                "remediation_code": "// [合规代码补丁] AppGuard-Patch-12: 废弃外部动态 Dex 下发，采用静态签名校验加载\npublic class CompliantPluginLoader {\n    public static void loadAuditedPlugin(Context context, File apkFile, String expectedSha256) throws Exception {\n        // 1. 强力校验待加载 APK 的 SHA-256 签名指纹，严防中间人篡改或投毒\n        String actualSha256 = DigestUtils.sha256Hex(new FileInputStream(apkFile));\n        if (!actualSha256.equalsIgnoreCase(expectedSha256)) {\n            throw new SecurityException(\"[AppGuard 合规拦截] 插件签名与安全基线报备指纹不一致，拒绝加载！\");\n        }\n        // 2. 存放在应用内部不可导出的只读目录 code_cache 中\n        File optDir = context.getCodeCacheDir();\n        new DexClassLoader(apkFile.getAbsolutePath(), optDir.getAbsolutePath(), null, context.getClassLoader());\n    }\n}",
+                "remediation": "下线未备案的热更新 Dex 下发通道；核心业务敏感接口显式声明调用，避免对抗性反射。",
+                "calculated_points": 5,
+                "points": 5
+            },
+            "count": 1,
+            "details": [
+                {
+                    "target_api": "dalvik.system.DexClassLoader -> loadClass",
+                    "caller_class": "com.bytedance.pangle.plugin.PluginClassLoader",
+                    "caller_method": "loadPluginClass()",
+                    "culprit": "穿山甲广告 (Pangle / ByteDance)",
+                    "offset": "0x8"
+                }
+            ]
+        }
+    ],
+    "sdk_attribution": {
+        "total_calls": 8,
+        "host_calls": 3,
+        "host_pct": 37.5,
+        "sdk_calls": 5,
+        "sdk_pct": 62.5,
+        "sdk_list": [
+            {
+                "name": "穿山甲广告 (Pangle / ByteDance)",
+                "count": 2,
+                "percentage": 25.0,
+                "rules": [
+                    "开屏‘摇一摇’传感器高频监听与误触风险",
+                    "恶意动态类加载与反射逃逸对抗"
+                ],
+                "severities": [
+                    "HIGH",
+                    "MEDIUM"
+                ],
+                "sample_calls": [
+                    {
+                        "api": "android.hardware.SensorManager -> registerListener",
+                        "caller": "com.bytedance.sdk.openadsdk.core.ShakeSensorHelper->startListening()"
+                    },
+                    {
+                        "api": "dalvik.system.DexClassLoader -> loadClass",
+                        "caller": "com.bytedance.pangle.plugin.PluginClassLoader->loadPluginClass()"
+                    }
+                ],
+                "action_advice": "广告联盟 SDK：必须在用户同意《隐私政策》后延时初始化，并调用 setPrivacyCompliance(true) 模式，与厂商补签《个人信息处理连带合规协议》。"
+            },
+            {
+                "name": "腾讯优量汇广告 (Tencent GDT)",
+                "count": 2,
+                "percentage": 25.0,
+                "rules": [
+                    "诱导点击与静默下载安装 APK"
+                ],
+                "severities": [
+                    "HIGH"
+                ],
+                "sample_calls": [
+                    {
+                        "api": "android.app.DownloadManager -> enqueue",
+                        "caller": "com.qq.e.comm.plugin.apk.DownloadService->silentEnqueue()"
+                    },
+                    {
+                        "api": "android.content.pm.PackageInstaller$Session -> commit",
+                        "caller": "com.qq.e.comm.plugin.apk.InstallBridge->commitSession()"
+                    }
+                ],
+                "action_advice": "广告联盟 SDK：必须在用户同意《隐私政策》后延时初始化，并调用 setPrivacyCompliance(true) 模式，与厂商补签《个人信息处理连带合规协议》。"
+            },
+            {
+                "name": "极光推送 (JPush)",
+                "count": 1,
+                "percentage": 12.5,
+                "rules": [
+                    "频繁自启动与‘全家桶’链式唤醒保活"
+                ],
+                "severities": [
+                    "MEDIUM"
+                ],
+                "sample_calls": [
+                    {
+                        "api": "android.content.Context -> startForegroundService",
+                        "caller": "cn.jpush.android.service.DaemonService->keepAlive()"
+                    }
+                ],
+                "action_advice": "消息推送 SDK：停用广播链式唤醒保活通道，关闭后台静默读取设备标识与应用列表，升级至工信部合规版本。"
+            }
+        ],
+        "sdk_count": 3,
+        "primary_offender": "穿山甲广告 (Pangle / ByteDance)",
+        "accountability_verdict": "经 Dalvik 字节码调用流与 XRef 责任穿透分析：第三方集成 SDK 违规占比达 62.5%，是导致应用触发监管通报的首要风险源。建议启动 SDK 延迟初始化合闸机制，明确双方免责边界。"
+    },
+    "file_size_mb": 2.53,
+    "payload_mb": 1.1,
+    "filter_ratio": "56.5%",
+    "elapsed": 4.2,
+    "md5": "fa60e1326e0ca1b415041011f733f4f6",
+    "sha256": "f891aabe59f7e2899f6d93cfc682a9c90b69aa9fa9bc2010c897617450f2afba",
+    "timeline": [
+        {
+            "time": "T+0.02s",
+            "stage": "进程创建",
+            "event": "Zygote 孵化进程，包名 [mark.via]，分配 Linux 沙箱独立 UID",
+            "level": "INFO",
+            "verdict": "正常"
+        },
+        {
+            "time": "T+0.15s",
+            "stage": "组件装载",
+            "event": "Application.attachBaseContext() 执行，初始化第三方 SDK 框架与插件",
+            "level": "INFO",
+            "verdict": "正常"
+        },
+        {
+            "time": "T+0.38s",
+            "stage": "主线程冷启动",
+            "event": "调用 ClipboardManager.getPrimaryClip() 读取剪贴板 (此时用户无主动粘贴行为)",
+            "level": "MEDIUM",
+            "verdict": "违规：静默监听系统剪贴板，涉嫌淘口令窃取与跨端数据画像"
+        },
+        {
+            "time": "T+0.45s",
+            "stage": "动态模块装载",
+            "event": "调用 DexClassLoader/PathClassLoader.loadClass() 动态反射加载外部字节码",
+            "level": "MEDIUM",
+            "verdict": "合规风险：存在动态下发未经备案代码以逃逸静态审查的隐患"
+        },
+        {
+            "time": "T+0.65s",
+            "stage": "首屏渲染",
+            "event": "MainActivity.onCreate() 完成绘制，首屏/开屏广告位启动加载",
+            "level": "INFO",
+            "verdict": "正常"
+        },
+        {
+            "time": "T+0.88s",
+            "stage": "开屏广告曝光",
+            "event": "注册 SensorManager.registerListener(TYPE_ACCELEROMETER) (默认上报率，未配置角速度滤波与主动摇晃门槛)",
+            "level": "HIGH",
+            "verdict": "严重违规：开屏‘摇一摇’高频监听，极易导致日常手持微晃诱发强制跳转"
+        },
+        {
+            "time": "T+1.10s",
+            "stage": "广告行为响应",
+            "event": "调用 DownloadManager.enqueue() 向系统下载服务静默提交 APK 安装包下载任务",
+            "level": "HIGH",
+            "verdict": "严重违规：诱导点击后未弹窗明示主体并私自触发静默下载"
+        },
+        {
+            "time": "T+1.28s",
+            "stage": "存储访问穿透",
+            "event": "调用 Environment.getExternalStorageDirectory() 遍历公共存储目录与相册资源",
+            "level": "HIGH",
+            "verdict": "违规：逃逸 Android 分区存储机制，超范围检索全盘与相册"
+        },
+        {
+            "time": "T+1.72s",
+            "stage": "保活与全家桶协同",
+            "event": "调用 Context.startForegroundService() 或 JobScheduler 注册常驻保活与链式唤醒",
+            "level": "MEDIUM",
+            "verdict": "合规隐患：频繁自启动与跨应用链式唤醒"
+        }
+    ],
+    "agent_analysis": {
+        "is_agent_enabled": true,
+        "agent_provider": "AppGuard-Expert-Agent (内置离线专家知识图谱)",
+        "app_category_key": "browser_utility",
+        "app_category_name": "实用工具 (浏览器/下载/清理)",
+        "statutory_law_ref": "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
+        "app_description": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。",
+        "baseline_score": 71,
+        "adjusted_score": 81,
+        "confidence_percent": 96.5,
+        "verdict_badge": "EXEMPTION_GRANTED",
+        "verdict_title": "经 Agent 场景上下文智能裁决：实用工具 (浏览器/下载/清理)核心主营业务功能获得合规豁免，最终裁定为良性合规",
+        "comprehensive_assessment": "本审计由【AppGuard 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第五条“最小必要原则”及国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》对目标应用 [Via] 执行深度场景因果研判。\n【业务画像对照】：开发者申报该应用为【实用工具 (浏览器/下载/清理)】，法定必要信息基线为“四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务”。\n【裁决穿透分析】：传统静态规则引擎基线参考分为 71 分，系未经业务场景滤波的机械扣分。智能体通过对 6 项疑点在 DEX 字节码中的具体调用位置（如 classes*.dex 内部调用栈及归属模块）进行反向因果溯源，确认应用调用的部分底层能力（如原生下载调度、前台剪贴板交互）属于其核心主营业务的合理支撑链路，给予合理豁免与降权；同时精准锁定了与主营功能完全背离的侵入式行为（如开屏摇一摇传感器监听），最终修正裁决得分为 81 分。",
+        "detailed_traces": [
+            {
+                "rule_id": "MIIT-04-SHAKE-SENSOR",
+                "rule_name": "开屏‘摇一摇’传感器高频监听与误触风险",
+                "category": "传感器行为",
+                "code_location_trace": "com.bytedance.sdk.openadsdk.core.ShakeSensorHelper::startListening() -> android.hardware.SensorManager -> registerListener (穿山甲广告 (Pangle / ByteDance))",
+                "business_necessity": "UNNECESSARY",
+                "verdict_action": "违背工信部红线·维持严惩 (-5分)",
+                "original_points": 5,
+                "adjusted_points": 5,
+                "root_cause_explanation": "【业务场景因果追溯】调用发生在 [com.bytedance.sdk.openadsdk.core.ShakeSensorHelper::startListening()]，经责任穿透属于【穿山甲广告 (Pangle / ByteDance)】。注册加速度计/陀螺仪传感器用于开屏广告交互，不属于该应用业务的合法必要组成部分，严重触犯工信部信管函〔2023〕26号第十条与 TAF-077 摇一摇防误触规范。",
+                "targeted_code_patch": "// [合规代码补丁] AppGuard-Patch-04: TAF-077-2022 标准防误触‘摇一摇’传感器代理\npublic class TafCompliantShakeDetector implements SensorEventListener {\n    private static final float MIN_ACC_THRESHOLD = 15.0f; // TAF规范: >= 15 m/s²\n    private static final float MIN_ROT_DEG = 35.0f;       // TAF规范: >= 35°\n    private static final long MIN_DURATION_MS = 3000L;    // TAF规范: 持续>= 3.0s\n    private long mShakeStartTime = 0;\n\n    @Override\n    public void onSensorChanged(SensorEvent event) {\n        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {\n            float gX = event.values[0], gY = event.values[1], gZ = event.values[2];\n            double totalAcc = Math.sqrt(gX * gX + gY * gY + gZ * gZ) - 9.8;\n            if (totalAcc >= MIN_ACC_THRESHOLD) {\n                if (mShakeStartTime == 0) mShakeStartTime = System.currentTimeMillis();\n                long elapsed = System.currentTimeMillis() - mShakeStartTime;\n                if (elapsed >= MIN_DURATION_MS) {\n                    triggerAdJump(); // 唯有满足三重国标阈值方可触发交互\n                    mShakeStartTime = 0;\n                }\n            } else {\n                mShakeStartTime = 0; // 不满足阈值立即重置，杜绝行车颠簸误触\n            }\n        }\n    }\n}"
+            },
+            {
+                "rule_id": "MIIT-05-SILENT-DOWNLOAD",
+                "rule_name": "诱导点击与静默下载安装 APK",
+                "category": "交互行为",
+                "code_location_trace": "com.qq.e.comm.plugin.apk.DownloadService::silentEnqueue() -> android.app.DownloadManager -> enqueue (腾讯优量汇广告 (Tencent GDT))",
+                "business_necessity": "ESSENTIAL",
+                "verdict_action": "场景合理·全额豁免扣分 (+5分)",
+                "original_points": 5,
+                "adjusted_points": 0,
+                "root_cause_explanation": "【业务场景因果追溯】调用发生在 [com.qq.e.comm.plugin.apk.DownloadService::silentEnqueue()]。该应用属于【实用工具 (浏览器/下载/清理)】，文件网络下载系核心主营业务功能支撑。基于四部委《规定》第32条，调用系统原生 DownloadManager 不属于违规诱导下载，给予场景化全额豁免。",
+                "targeted_code_patch": "// [合规建议] DownloadManager 属于浏览器必备能力，保留调用，但建议在触发下载前向用户展示标准确认弹窗：\nnew AlertDialog.Builder(context)\n    .setTitle(\"下载任务确认\")\n    .setMessage(\"即将下载文件: \" + fileName + \"，是否继续？\")\n    .setPositiveButton(\"开始下载\", (d, w) -> downloadManager.enqueue(request))\n    .show();"
+            },
+            {
+                "rule_id": "MIIT-09-AUTOSTART-WAKE",
+                "rule_name": "频繁自启动与‘全家桶’链式唤醒保活",
+                "category": "生命周期",
+                "code_location_trace": "cn.jpush.android.service.DaemonService::keepAlive() -> android.content.Context -> startForegroundService (极光推送 (JPush))",
+                "business_necessity": "DEFECTIVE",
+                "verdict_action": "维持基准评定",
+                "original_points": 4,
+                "adjusted_points": 4,
+                "root_cause_explanation": "调用点位于 [cn.jpush.android.service.DaemonService::keepAlive()]，经穿透主体为 [极光推送 (JPush)]，需遵循《个人信息保护法》明示授权原则进行合规治理。",
+                "targeted_code_patch": "// [合规代码补丁] AppGuard-Patch-09: 使用 WorkManager 替代守护进程自启保活\npublic class CompliantSyncScheduler {\n    public static void schedulePeriodicTask(Context context) {\n        // 使用系统级 WorkManager 受控调度，遵守电池优化规范，不占用前台自启通道\n        PeriodicWorkRequest syncWork = new PeriodicWorkRequest.Builder(DataSyncWorker.class, 6, TimeUnit.HOURS)\n            .setConstraints(new Constraints.Builder()\n                .setRequiredNetworkType(NetworkType.UNMETERED) // 仅在 WiFi 连接时同步\n                .setRequiresBatteryNotLow(true)               // 电量充沛才执行\n                .build())\n            .build();\n        WorkManager.getInstance(context).enqueueUniquePeriodicWork(\"ComplianceSync\", ExistingPeriodicWorkPolicy.KEEP, syncWork);\n    }\n}"
+            },
+            {
+                "rule_id": "MIIT-10-CLIPBOARD",
+                "rule_name": "私自静默读取剪贴板信息",
+                "category": "剪贴板隐私",
+                "code_location_trace": "mark.via.browser.SearchBoxView::autoPasteCheck() -> android.content.ClipboardManager -> getPrimaryClip (应用自身业务模块)",
+                "business_necessity": "DEFECTIVE",
+                "verdict_action": "降权优化·扣分减半 (+2分)",
+                "original_points": 5,
+                "adjusted_points": 2,
+                "root_cause_explanation": "【业务场景因果追溯】调用发生在 [mark.via.browser.SearchBoxView::autoPasteCheck()]。应用在主界面加载时尝试获取剪贴板内容，旨在实现‘网址/口令快捷识别’提升交互体验。但根据工信部 26 号文要求，应用严禁在无用户主观意图时静默嗅探剪贴板，应在用户点击搜索框或授权后读取。",
+                "targeted_code_patch": "// [合规优化补丁] 改造为‘用户交互触发式剪贴板读取’，避免冷启动静默调用：\nsearchEditText.setOnFocusChangeListener((v, hasFocus) -> {\n    if (hasFocus && isUserConsentGranted()) {\n        ClipData clip = clipboardManager.getPrimaryClip();\n        // 仅在获得用户前台焦点后执行识别\n    }\n});"
+            },
+            {
+                "rule_id": "MIIT-11-STORAGE-PHOTO",
+                "rule_name": "逃逸分区存储扫描全盘文件与相册",
+                "category": "存储隐私",
+                "code_location_trace": "mark.via.utils.FileUtils::scanLocalMedia() -> android.os.Environment -> getExternalStorageDirectory (应用自身业务模块)",
+                "business_necessity": "DEFECTIVE",
+                "verdict_action": "兼容性保留·架构整改建议",
+                "original_points": 5,
+                "adjusted_points": 3,
+                "root_cause_explanation": "【业务场景因果追溯】调用发生在 [mark.via.utils.FileUtils::scanLocalMedia()] (共 1 处)。浏览器因历史兼容性需要向外部存储写入下载文件，但直接调用 getExternalStorageDirectory 已在 Android 11+ 被废弃，容易引发工信部‘私自读取相册全盘文件’通报风险，必须迁移为标准 SAF 存储访问框架。",
+                "targeted_code_patch": "// [合规存储迁移补丁] 迁移至标准 App-Specific Download 目录或 SAF：\nFile safeDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);\nFile targetFile = new File(safeDir, fileName);\n// 写入无需全局 READ_EXTERNAL_STORAGE 权限，完全规避工信部存储通报"
+            },
+            {
+                "rule_id": "MIIT-12-DYNAMIC-DEX",
+                "rule_name": "恶意动态类加载与反射逃逸对抗",
+                "category": "安全对抗",
+                "code_location_trace": "com.bytedance.pangle.plugin.PluginClassLoader::loadPluginClass() -> dalvik.system.DexClassLoader -> loadClass (穿山甲广告 (Pangle / ByteDance))",
+                "business_necessity": "DEFECTIVE",
+                "verdict_action": "维持基准评定",
+                "original_points": 5,
+                "adjusted_points": 5,
+                "root_cause_explanation": "调用点位于 [com.bytedance.pangle.plugin.PluginClassLoader::loadPluginClass()]，经穿透主体为 [穿山甲广告 (Pangle / ByteDance)]，需遵循《个人信息保护法》明示授权原则进行合规治理。",
+                "targeted_code_patch": "// [合规代码补丁] AppGuard-Patch-12: 废弃外部动态 Dex 下发，采用静态签名校验加载\npublic class CompliantPluginLoader {\n    public static void loadAuditedPlugin(Context context, File apkFile, String expectedSha256) throws Exception {\n        // 1. 强力校验待加载 APK 的 SHA-256 签名指纹，严防中间人篡改或投毒\n        String actualSha256 = DigestUtils.sha256Hex(new FileInputStream(apkFile));\n        if (!actualSha256.equalsIgnoreCase(expectedSha256)) {\n            throw new SecurityException(\"[AppGuard 合规拦截] 插件签名与安全基线报备指纹不一致，拒绝加载！\");\n        }\n        // 2. 存放在应用内部不可导出的只读目录 code_cache 中\n        File optDir = context.getCodeCacheDir();\n        new DexClassLoader(apkFile.getAbsolutePath(), optDir.getAbsolutePath(), null, context.getClassLoader());\n    }\n}"
+            }
+        ],
+        "regulatory_citations": [
+            "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
+            "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
+            "工信部信管函〔2023〕26号 · 移动互联网应用程序个人信息保护管理若干规定",
+            "国家标准 GB/T 35273-2020《信息安全技术 个人信息安全规范》第 5.4 条（最小化要求）"
+        ],
+        "timestamp": "2026-09-13 22:35:48"
+    },
+    "app_category": "browser_utility",
+    "app_category_name": "实用工具 (浏览器/下载/清理)",
+    "app_description": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
 };
 
         // Aceternity UI 标志性聚光灯跟随系统 (Spotlight Glow System)
@@ -3381,10 +3743,137 @@
             applyThemeState(savedTheme);
             renderAuditModeDetailCard();
             updateChannelAStrategyUI(currentAuditType);
-            renderAuditResult(DEFAULT_AUDIT_DATA, false);
+            clearPreviousAuditRecords(true, false);
             loadDeviceAppsList();
             initSpotlightEffects();
         });
     </script>
+
+    <!-- 智能体配置中心 Modal (Apple 液态玻璃模态框) -->
+    <div id="agentModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md transition-all">
+        <div class="glass-card rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-sky-500/30 relative max-h-[92vh] overflow-y-auto space-y-5">
+            <!-- Modal 顶部标题栏 -->
+            <div class="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-3.5">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center text-sm shadow-md">
+                        <i class="fa-solid fa-microchip-ai"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                            <span>合规审计智能体 (Agent) 配置中心</span>
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-300 font-bold border border-sky-500/30">AI+ CONTEXT</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            支持 DeepSeek、Kimi、智谱 GLM 及自定义端点；无 Key 自动无损启用内置专家引擎
+                        </p>
+                    </div>
+                </div>
+                <button onclick="closeAgentModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- 提供商分段选项卡 -->
+            <div class="space-y-2">
+                <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span>选择大模型提供商 (Model Provider)：</span>
+                    <a id="providerDocLink" href="https://platform.deepseek.com" target="_blank" class="text-[10px] text-sky-500 hover:underline">获取 API Key & 文档</a>
+                </label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button type="button" onclick="selectAgentProvider('deepseek')" id="tab-provider-deepseek" class="p-2.5 rounded-2xl border text-center transition interactive-btn flex flex-col items-center justify-center space-y-1">
+                        <span class="text-xs font-bold text-slate-800 dark:text-white">DeepSeek</span>
+                        <span class="text-[9px] font-mono text-slate-400">深度求索 V3</span>
+                    </button>
+                    <button type="button" onclick="selectAgentProvider('kimi')" id="tab-provider-kimi" class="p-2.5 rounded-2xl border text-center transition interactive-btn flex flex-col items-center justify-center space-y-1">
+                        <span class="text-xs font-bold text-slate-800 dark:text-white">Kimi</span>
+                        <span class="text-[9px] font-mono text-slate-400">Moonshot</span>
+                    </button>
+                    <button type="button" onclick="selectAgentProvider('glm')" id="tab-provider-glm" class="p-2.5 rounded-2xl border text-center transition interactive-btn flex flex-col items-center justify-center space-y-1">
+                        <span class="text-xs font-bold text-slate-800 dark:text-white">智谱 GLM</span>
+                        <span class="text-[9px] font-mono text-slate-400">GLM-4-Flash</span>
+                    </button>
+                    <button type="button" onclick="selectAgentProvider('custom')" id="tab-provider-custom" class="p-2.5 rounded-2xl border text-center transition interactive-btn flex flex-col items-center justify-center space-y-1">
+                        <span class="text-xs font-bold text-slate-800 dark:text-white">自定义</span>
+                        <span class="text-[9px] font-mono text-slate-400">OpenAI 兼容</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 配置参数表单 -->
+            <div class="space-y-3.5 inner-subcard p-4 rounded-2xl border border-slate-200/80 dark:border-white/10">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">API Key：</label>
+                    <div class="relative">
+                        <input id="agentApiKeyInput" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition pr-10">
+                        <button type="button" onclick="toggleApiKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs">
+                            <i id="apiKeyEyeIcon" class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Endpoint (Base URL)：</label>
+                        <input id="agentBaseUrlInput" type="text" placeholder="https://api.deepseek.com" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Model 模型名称：</label>
+                        <input id="agentModelInput" type="text" placeholder="deepseek-chat" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">调度运行策略：</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center space-x-1.5 p-2 rounded-xl border border-slate-200 dark:border-white/5 cursor-pointer hover:bg-sky-500/5 text-xs">
+                            <input type="radio" name="agentMode" value="auto" checked class="text-sky-500">
+                            <span class="text-[11px] font-medium text-slate-700 dark:text-slate-300">自动智能降级</span>
+                        </label>
+                        <label class="flex items-center space-x-1.5 p-2 rounded-xl border border-slate-200 dark:border-white/5 cursor-pointer hover:bg-sky-500/5 text-xs">
+                            <input type="radio" name="agentMode" value="online_only" class="text-sky-500">
+                            <span class="text-[11px] font-medium text-slate-700 dark:text-slate-300">仅真实大模型</span>
+                        </label>
+                        <label class="flex items-center space-x-1.5 p-2 rounded-xl border border-slate-200 dark:border-white/5 cursor-pointer hover:bg-sky-500/5 text-xs">
+                            <input type="radio" name="agentMode" value="offline_only" class="text-sky-500">
+                            <span class="text-[11px] font-medium text-slate-700 dark:text-slate-300">强制离线专家</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 连通性测试状态展示 -->
+                <div id="agentTestStatus" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
+            </div>
+
+            <!-- 底层技术创新说明卡片 -->
+            <div class="p-3.5 rounded-2xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed space-y-1">
+                <div class="font-bold text-sky-800 dark:text-sky-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i>
+                    <span>大赛答辩与双引擎保障：</span>
+                </div>
+                <div>
+                    ① <strong>场景化最小必要性原则</strong>：智能体依据国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》(39类国标)，结合 DEX 字节码调用位置精确剖析调用意图，对浏览器下载、前台粘贴等主营业务给予合规豁免。<br>
+                    ② <strong>离线专家兜底</strong>：现场演示若断网或无 Key，系统瞬间启用确定性领域知识图谱引擎，0ms 稳定输出结构化裁决意见书。
+                </div>
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-white/10">
+                <button type="button" onclick="testAgentConnection()" id="btnTestAgent" class="px-4 py-2 rounded-xl liquid-btn-secondary text-xs font-semibold flex items-center space-x-1.5 interactive-btn">
+                    <i class="fa-solid fa-satellite-dish text-[11px]"></i>
+                    <span>测试连通性</span>
+                </button>
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="closeAgentModal()" class="px-4 py-2 rounded-xl inner-subcard text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+                        取消
+                    </button>
+                    <button type="button" onclick="saveAgentConfig()" id="btnSaveAgent" class="px-5 py-2 rounded-xl liquid-btn-primary text-xs font-bold text-white shadow-md flex items-center space-x-1.5 interactive-btn">
+                        <i class="fa-solid fa-floppy-disk text-[11px]"></i>
+                        <span>保存配置</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

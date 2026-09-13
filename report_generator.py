@@ -2,6 +2,7 @@ import os
 import time
 from datetime import datetime
 import app_guard_scanner
+import compliance_agent
 
 def generate_report(data, output_dir="outputs"):
     """
@@ -31,6 +32,20 @@ def generate_report(data, output_dir="outputs"):
     timeline = data.get("timeline", [])
     findings = data.get("findings", [])
     dimensions = data.get("dimensions", {})
+
+    # 智能体场景化裁决分析 (Agent Contextual Verdict)
+    agent_analysis = data.get("agent_analysis")
+    if not agent_analysis:
+        try:
+            agent_analysis = compliance_agent.default_compliance_agent.analyze(
+                data,
+                app_category=data.get("app_category", ""),
+                app_description=data.get("app_description", "")
+            )
+            data["agent_analysis"] = agent_analysis
+        except Exception as _e:
+            agent_analysis = None
+
     is_fused = data.get("is_fused", False)
     fuse_reason = data.get("fuse_reason", "")
 
@@ -97,10 +112,120 @@ def generate_report(data, output_dir="outputs"):
             <td>{cat_badge}<strong style="color:#f8fafc;">{s.get('name', '第三方SDK')}</strong></td>
             <td><code style="color:#38bdf8;">{s.get('count', 0)} 处</code></td>
             <td><span style="font-weight:bold;color:{pct_color};">{s.get('percentage', 0)}%</span></td>
-            <td><span style="font-size:11px;color:#cbd5e1;">{rules_text}</span></td>
-            <td style="font-size:11px;color:#94a3b8;line-height:1.4;">{s.get('action_advice', '')}</td>
-        </tr>
+           <td><span style="font-size:11px;color:#cbd5e1;">{rules_text}</span></td>
+           <td style="font-size:11px;color:#94a3b8;line-height:1.4;">{s.get('action_advice', '')}</td>
+       </tr>
+       """
+
+    # 构建 Agent 场景化最小必要性智能裁决卡片 HTML
+    agent_verdict_html = ""
+    if agent_analysis:
+        p_name = agent_analysis.get("agent_provider", "AppGuard-Expert-Agent")
+        c_name = agent_analysis.get("app_category_name", "通用业务类")
+        l_ref = agent_analysis.get("statutory_law_ref", "四部委《39类App必要个人信息规定》")
+        desc_text = agent_analysis.get("app_description", "")
+        b_score = agent_analysis.get("baseline_score", score)
+        a_score = agent_analysis.get("adjusted_score", b_score)
+        conf = agent_analysis.get("confidence_percent", 96.0)
+        v_badge = agent_analysis.get("verdict_badge", "EXEMPTION_GRANTED")
+        v_title = agent_analysis.get("verdict_title", "合规场景裁决完成")
+        assessment = (agent_analysis.get("comprehensive_assessment") or "").replace("\n", "<br>")
+
+        badge_style = "background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.4);"
+        if v_badge == "SEVERE_VIOLATION":
+            badge_style = "background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4);"
+        elif v_badge == "PARTIAL_DEFECT":
+            badge_style = "background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.4);"
+
+        traces_html = ""
+        for t in agent_analysis.get("detailed_traces", []):
+            act = t.get("verdict_action", "维持评定")
+            act_color = "#10b981" if ("豁免" in act or "优化" in act or "保留" in act) else ("#f87171" if ("严惩" in act or "维持" in act) else "#fbbf24")
+            patch_box = ""
+            if t.get("targeted_code_patch"):
+                p_code = t["targeted_code_patch"].replace("<", "&lt;").replace(">", "&gt;")
+                patch_box = f'<div style="margin-top:8px;background:#050608;padding:8px 12px;border-radius:6px;border:1px solid rgba(56,189,248,0.25);font-family:monospace;font-size:11px;color:#38bdf8;white-space:pre-wrap;">{p_code}</div>'
+            traces_html += f"""
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                <td style="padding:10px 12px;vertical-align:top;font-size:12px;">
+                    <strong style="color:#f8fafc;">{t.get('rule_name')}</strong><br>
+                    <code style="color:#94a3b8;font-size:10px;">{t.get('rule_id')}</code>
+                </td>
+                <td style="padding:10px 12px;vertical-align:top;font-size:11px;">
+                    <div style="color:#38bdf8;font-family:monospace;word-break:break-all;">{t.get('code_location_trace')}</div>
+                </td>
+                <td style="padding:10px 12px;vertical-align:top;font-size:11px;">
+                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-weight:bold;color:{act_color};background:rgba(255,255,255,0.05);border:1px solid {act_color}55;">
+                        {act}
+                    </span>
+                    <div style="margin-top:6px;color:#cbd5e1;line-height:1.5;">{t.get('root_cause_explanation')}</div>
+                    {patch_box}
+                </td>
+            </tr>
+            """
+
+        agent_verdict_html = f"""
+        <!-- Agent 场景化最小必要性智能裁决意见书 -->
+        <div class="section-card" style="border:1px solid rgba(56,189,248,0.4);background:linear-gradient(180deg, rgba(14,165,233,0.08) 0%, rgba(18,21,31,0.95) 100%);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:14px;margin-bottom:16px;">
+                <div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="background:#0284c7;color:white;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:bold;">AI+ AGENT</span>
+                        <h3 style="margin:0;font-size:17px;font-weight:800;color:#f8fafc;">场景化最小必要性智能裁决意见书 (Compliance Agent Verdict)</h3>
+                    </div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+                        推理引擎: <strong style="color:#38bdf8;">{p_name}</strong> · 法定标准依据: <span>{l_ref}</span>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <span class="badge" style="{badge_style}font-size:12px;font-weight:bold;">
+                        {v_title}
+                    </span>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:16px;">
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;">
+                    <div style="font-size:11px;color:#94a3b8;">申报应用品类与定位</div>
+                    <div style="font-size:14px;font-weight:bold;color:#f8fafc;margin-top:4px;">{c_name}</div>
+                    <div style="font-size:11px;color:#64748b;margin-top:2px;">四部委 39 类标准基线</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;">
+                    <div style="font-size:11px;color:#94a3b8;">机检初筛分 vs Agent 场景裁定分</div>
+                    <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px;">
+                        <span style="font-size:13px;color:#94a3b8;text-decoration:line-through;">机检参考 {b_score} 分</span>
+                        <span style="font-size:20px;font-weight:900;color:#10b981;">Agent 最终 {a_score} 分</span>
+                        <span style="font-size:10px;color:#38bdf8;">(置信度 {conf}%)</span>
+                    </div>
+                </div>
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;grid-column:1 / -1;">
+                    <div style="font-size:11px;color:#94a3b8;">申报主营业务用途说明</div>
+                    <div style="font-size:12px;color:#cbd5e1;margin-top:4px;line-height:1.5;">{desc_text}</div>
+                </div>
+            </div>
+            <div style="background:rgba(56,189,248,0.04);border-left:3px solid #38bdf8;padding:12px 16px;border-radius:4px;margin-bottom:16px;font-size:12px;line-height:1.6;color:#e2e8f0;">
+                {assessment}
+            </div>
+            <div style="margin-top:14px;">
+                <div style="font-size:13px;font-weight:bold;color:#f8fafc;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                    <span>疑点调用链代码位置深度追溯与场景裁决明细</span>
+                    <span style="font-size:11px;color:#94a3b8;font-weight:normal;">(穿透类名::方法名与第三方 SDK 归属)</span>
+                </div>
+                <table style="width:100%;border-collapse:collapse;text-align:left;">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.1);font-size:11px;color:#94a3b8;">
+                            <th style="padding:10px 12px;width:24%;">工信部红线核查项</th>
+                            <th style="padding:10px 12px;width:34%;">DEX 字节码精确调用点与责任主体</th>
+                            <th style="padding:10px 12px;width:42%;">Agent 场景裁决·因果剖析与定向补丁</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {traces_html}
+                    </tbody>
+                </table>
+            </div>
+        </div>
         """
+
     sdk_matrix_html = f"""
     <div class="section-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -624,6 +749,8 @@ def generate_report(data, output_dir="outputs"):
                 {dim_cards_html}
             </div>
         </div>
+
+        {agent_verdict_html}
 
         <!-- 第三方 SDK 责任穿透大盘 -->
         {sdk_matrix_html}
