@@ -1,0 +1,45 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+work/
+
+# Runtime outputs, logs & caches
+outputs/
+*.log
+server.log
+
+# Temporary / Scratch scripts & Competition drafts
+apply_ui_upgrades.py
+fix_*.py
+generate_clean_apple_ui.py
+update_*.py
+dasaitongzhi*
+pingshenguize*
+*.zip
+*.pdf
+AGENT.md
+agent.md
+*.bak
+*.tmp
+
+# Operating System & Editor Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
