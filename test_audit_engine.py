@@ -550,7 +550,9 @@ class TestAuditEngine(unittest.TestCase):
             self.assertIn("浏览器", r_via["category_name"])
             self.assertIn("32", r_via["law_ref"])
             self.assertTrue(len(r_via["description"]) > 10)
-            self.assertGreaterEqual(r_via["confidence"], 0.90)
+            self.assertIsNone(r_via["confidence"], "离线规则推导不使用统计置信度伪装")
+            self.assertEqual(r_via["evaluation_mode"], "DETERMINISTIC_RULES")
+            self.assertIn("未配置大模型 API Key", r_via.get("degrade_reason", ""))
 
             # 2. 手机游戏
             r_game = compliance_agent.classify_app_and_describe("com.tencent.qqgame.xq", "天天象棋")
@@ -573,17 +575,22 @@ class TestAuditEngine(unittest.TestCase):
         self.assertEqual(len(data), 40, "必须包含法定 1~39 类以及第 40 类通用扩展")
         required_fields = ["id", "key", "name", "raw_name", "law_ref", "basic_service", "necessary_info", "no_info_needed", "legitimate_apis", "legitimate_scenarios", "strict_redlines", "sample_description"]
         no_info_ids = []
+        redlines_set = set()
         for k, v in data.items():
             for field in required_fields:
                 self.assertIn(field, v, f"类别 {k} 缺少必须字段 {field}")
                 val = v[field]
                 if isinstance(val, str):
                     self.assertTrue(len(val.strip()) > 0, f"类别 {k} 的字段 {field} 不可为空白字符串")
+                elif isinstance(val, list):
+                    self.assertGreater(len(val), 0, f"类别 {k} 的列表字段 {field} 不可为空数组")
             if v["no_info_needed"]:
                 no_info_ids.append(v["id"])
+            redlines_set.add(v["strict_redlines"])
         # 验证法定 13 类免收集个人信息品类
         expected_no_info = [21, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]
         self.assertEqual(sorted(no_info_ids), expected_no_info)
+        self.assertEqual(len(redlines_set), 40, "40 类严格红线禁区必须针对本行业法定边界量身定制，杜绝模板化重复")
 
     def test_bidirectional_score_penalty_and_offline_confidence(self):
         """测试 Agent 离线模式置信度明确标注与违背红线双向加重扣罚"""
@@ -602,6 +609,68 @@ class TestAuditEngine(unittest.TestCase):
         self.assertEqual(res["evaluation_mode"], "DETERMINISTIC_RULES")
         self.assertGreater(res["score_penalty"], 0, "严重违规应当计算扣罚分")
         self.assertLess(res["adjusted_score"], 85, "违背红线场景下最终裁决分应低于基准分")
+
+    def test_statutory_location_differentiation(self):
+        """测试地理位置法定必要性差异化判定：出行全免、金融加重扣罚、免信息品类加重扣罚"""
+        agent = compliance_agent.ComplianceAgent(config={"mode": "offline_only"})
+        loc_finding = {
+            "rule": {
+                "id": "MIIT-07-LOCATION",
+                "name": "超范围定位",
+                "category": "位置信息",
+                "points": 5,
+                "calculated_points": 5,
+                "remediation_code": "// patch"
+            },
+            "details": [{"caller_class": "com.test.App", "caller_method": "getLocation", "target_api": "android.location.LocationManager -> getLastKnownLocation", "culprit": "自身业务"}]
+        }
+
+        # 1. 地图导航 (第1类) -> 全额豁免
+        data_map = {"app_name": "TestMap", "package_name": "com.test.map", "compliance_score": 80, "findings": [loc_finding]}
+        res_map = agent.analyze(data_map, app_category="map_navigation")
+        trace_map = res_map["detailed_traces"][0]
+        self.assertEqual(trace_map["business_necessity"], "ESSENTIAL")
+        self.assertIn("全额豁免", trace_map["verdict_action"])
+        self.assertEqual(trace_map["adjusted_points"], 0)
+        self.assertIn("第(1)项", trace_map["root_cause_explanation"])
+        self.assertNotIn("第32条", trace_map["root_cause_explanation"])
+
+        # 2. 手机银行 (第24类) -> 超范围加重扣罚
+        data_bank = {"app_name": "TestBank", "package_name": "com.test.bank", "compliance_score": 80, "findings": [loc_finding]}
+        res_bank = agent.analyze(data_bank, app_category="mobile_banking")
+        trace_bank = res_bank["detailed_traces"][0]
+        self.assertEqual(trace_bank["business_necessity"], "UNNECESSARY")
+        self.assertIn("超范围索取定位·加重扣罚", trace_bank["verdict_action"])
+        self.assertEqual(trace_bank["adjusted_points"], 8)  # base 5 + penalty 3
+        self.assertIn("不包含地理位置", trace_bank["root_cause_explanation"])
+
+        # 3. 网络支付 (第5类) -> 超范围加重扣罚
+        data_pay = {"app_name": "TestPay", "package_name": "com.test.pay", "compliance_score": 80, "findings": [loc_finding]}
+        res_pay = agent.analyze(data_pay, app_category="online_payment")
+        trace_pay = res_pay["detailed_traces"][0]
+        self.assertEqual(trace_pay["business_necessity"], "UNNECESSARY")
+        self.assertIn("超范围索取定位·加重扣罚", trace_pay["verdict_action"])
+
+        # 4. 浏览器类 (第32类，法定 13 类免信息之一) -> 法定免信息品类违规定位加重扣罚
+        data_browser = {"app_name": "TestBrowser", "package_name": "com.test.browser", "compliance_score": 80, "findings": [loc_finding]}
+        res_browser = agent.analyze(data_browser, app_category="web_browser")
+        trace_browser = res_browser["detailed_traces"][0]
+        self.assertEqual(trace_browser["business_necessity"], "UNNECESSARY")
+        self.assertIn("法定免信息品类·违规定位加重扣罚", trace_browser["verdict_action"])
+        self.assertEqual(trace_browser["adjusted_points"], 8)
+
+    def test_missing_knowledge_base_fallback_no_crash(self):
+        """测试在 gb_categories_39.json 缺失或损坏时平滑降级，确保 100% 不发生 KeyError 崩溃"""
+        from unittest.mock import patch
+        with patch("os.path.exists", return_value=False):
+            cats = compliance_agent._load_gb_categories()
+            self.assertIn("general_custom", cats)
+            self.assertIn("web_browser", cats)
+            agent = compliance_agent.ComplianceAgent(config={"mode": "offline_only"})
+            dummy = {"app_name": "FallbackApp", "package_name": "com.fallback.app", "compliance_score": 90, "findings": []}
+            res = agent.analyze(dummy, app_category="non_existent_key")
+            self.assertEqual(res["adjusted_score"], 90)
+            self.assertIsNotNone(res["statutory_law_ref"])
 
 if __name__ == "__main__":
     unittest.main()

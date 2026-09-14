@@ -437,6 +437,7 @@ def enrich_with_agent_analysis(audit_result, app_category="", app_description=""
         audit_result["app_description"] = agent_res.get("app_description")
     except Exception as e:
         print(f"[!] Agent 分析注入告警: {e}")
+        audit_result["agent_skipped_reason"] = f"Agent 执行异常: {str(e)}"
     return audit_result
 
 @app.route("/api/scan_local", methods=["POST"])
@@ -1198,12 +1199,16 @@ def api_agent_analyze():
     if not audit_data:
         return jsonify({"success": False, "error": "缺少待审机检数据"})
 
-    agent_res = compliance_agent.default_compliance_agent.analyze(
-        audit_data,
-        app_category=app_category,
-        app_description=app_description
-    )
-    return jsonify({"success": True, "agent_analysis": agent_res})
+    try:
+        agent_res = compliance_agent.default_compliance_agent.analyze(
+            audit_data,
+            app_category=app_category,
+            app_description=app_description
+        )
+        return jsonify({"success": True, "agent_analysis": agent_res})
+    except Exception as e:
+        print(f"[!] Agent 独立研判接口异常: {e}")
+        return jsonify({"success": False, "error": str(e), "agent_skipped_reason": f"知识库或模型调度异常: {str(e)}"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

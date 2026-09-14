@@ -752,7 +752,7 @@
                         <span class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">AppGuard</span>
                         <span class="text-xs text-slate-300 dark:text-slate-700">/</span>
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline">移动应用合规审计与端云协同分析系统</span>
-                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-white/10 font-bold">v1.09</span>
+                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-white/10 font-bold">v1.10</span>
                     </div>
                     <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center space-x-1.5 font-mono">
                         <span>《个人信息保护法》</span>
@@ -933,12 +933,12 @@
                     <div class="lg:col-span-8 space-y-1.5">
                         <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                             <span class="flex items-center space-x-1">
-                                <i class="fa-solid fa-quote-left text-sky-500 text-[10px]"></i>
-                                <span>App 主营业务用途说明 (供智能体因果溯源与合理性研判)：</span>
-                            </span>
-                            <span id="catLawRef" class="text-[10px] text-slate-400 font-normal">四部委《规定》第32条：实用工具类基本功能无须个人信息</span>
-                        </label>
-                        <div class="relative">
+                               <i class="fa-solid fa-quote-left text-sky-500 text-[10px]"></i>
+                               <span>App 主营业务用途说明 (供智能体因果溯源与合理性研判)：</span>
+                           </span>
+                            <span id="catLawRef" class="text-[10px] text-slate-400 font-normal">国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项：浏览器类基本功能无须个人信息</span>
+                       </label>
+                       <div class="relative">
                             <input id="appDescriptionInput" type="text" value="极简轻量级移动网页浏览器，核心功能为网页浏览、书签管理和网络文件下载，支持剪贴板网址快捷识别，不含广告变现链路。" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition pr-20" placeholder="请简要说明 App 核心业务与为何需调用敏感功能...">
                             <button type="button" onclick="resetDefaultDescription()" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-sky-500 px-2 py-0.5 rounded transition">
                                 填入预设
@@ -2941,6 +2941,7 @@
                           <div>
                                <div class="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center space-x-2">
                                    <span>${d.app_name} (${d.package_name})</span>
+                                   ${d.is_demo_sample ? `<span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/35 font-bold"><i class="fa-solid fa-flask text-[9px] mr-1"></i>[演练预置样本 · 供功能演示]</span>` : ''}
                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${d.channel === 'A' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'} font-bold border">${d.channel === 'A' ? '通道 A · 本地 APK' : '通道 B · 真机提取'}</span>
                                    ${d.temp_installed_and_purged ? `<span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold border"><i class="fa-solid fa-recycle text-[9px] mr-1"></i>真机临时沙箱·零残留销毁</span>` : ''}
                                    ${d.fallback_offline ? `<span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-bold border"><i class="fa-solid fa-triangle-exclamation text-[9px] mr-1"></i>离线降级反编译</span>` : ''}
@@ -3733,19 +3734,21 @@
             "verdict": "合规隐患：频繁自启动与跨应用链式唤醒"
         }
     ],
-    "agent_analysis": {
-        "is_agent_enabled": true,
-        "agent_provider": "AppGuard-Expert-Agent (内置离线专家知识图谱)",
-        "app_category_key": "browser_utility",
-        "app_category_name": "实用工具 (浏览器/下载/清理)",
-        "statutory_law_ref": "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
+   "agent_analysis": {
+       "is_agent_enabled": true,
+       "agent_provider": "AppGuard-Expert-Agent (内置离线专家知识图谱)",
+        "app_category_key": "web_browser",
+        "app_category_name": "浏览器类 (第32类)",
+        "statutory_law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项",
         "app_description": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。",
         "baseline_score": 71,
         "adjusted_score": 81,
-        "confidence_percent": 96.5,
+        "evaluation_mode": "DETERMINISTIC_RULES",
+        "confidence_percent": null,
+        "confidence_desc": "四部委 39 类国标确定性规则推导（非统计概率）",
         "verdict_badge": "EXEMPTION_GRANTED",
-        "verdict_title": "经 Agent 场景上下文智能裁决：实用工具 (浏览器/下载/清理)核心主营业务功能获得合规豁免，最终裁定为良性合规",
-        "comprehensive_assessment": "本审计由【AppGuard 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第五条“最小必要原则”及国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》对目标应用 [Via] 执行深度场景因果研判。\n【业务画像对照】：开发者申报该应用为【实用工具 (浏览器/下载/清理)】，法定必要信息基线为“四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务”。\n【裁决穿透分析】：传统静态规则引擎基线参考分为 71 分，系未经业务场景滤波的机械扣分。智能体通过对 6 项疑点在 DEX 字节码中的具体调用位置（如 classes*.dex 内部调用栈及归属模块）进行反向因果溯源，确认应用调用的部分底层能力（如原生下载调度、前台剪贴板交互）属于其核心主营业务的合理支撑链路，给予合理豁免与降权；同时精准锁定了与主营功能完全背离的侵入式行为（如开屏摇一摇传感器监听），最终修正裁决得分为 81 分。",
+        "verdict_title": "经 Agent 场景上下文智能裁决：浏览器类 (第32类)核心主营业务功能获得合规豁免，最终裁定为良性合规",
+        "comprehensive_assessment": "本审计由【AppGuard 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第六条“最小必要原则”及国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》对目标应用 [Via] 执行深度场景因果研判。\n【业务画像对照】：开发者申报该应用为【浏览器类 (第32类)】，法定必要信息基线为“国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项：浏览器类，无须个人信息即可使用基本功能服务”。\n【裁决穿透分析】：传统静态规则引擎基线参考分为 71 分，系未经业务场景滤波的机械扣分。智能体通过对 6 项疑点在 DEX 字节码中的具体调用位置（如 classes*.dex 内部调用栈及归属模块）进行反向因果溯源，确认应用调用的部分底层能力（如原生下载调度、前台剪贴板交互）属于其核心主营业务的合理支撑链路，给予合理豁免与降权；同时精准锁定了与主营功能完全背离的侵入式行为（如开屏摇一摇传感器监听），最终修正裁决得分为 81 分。",
         "detailed_traces": [
             {
                 "rule_id": "MIIT-04-SHAKE-SENSOR",
@@ -3764,12 +3767,12 @@
                 "rule_name": "诱导点击与静默下载安装 APK",
                 "category": "交互行为",
                 "code_location_trace": "com.qq.e.comm.plugin.apk.DownloadService::silentEnqueue() -> android.app.DownloadManager -> enqueue (腾讯优量汇广告 (Tencent GDT))",
-                "business_necessity": "ESSENTIAL",
-                "verdict_action": "场景合理·全额豁免扣分 (+5分)",
-                "original_points": 5,
-                "adjusted_points": 0,
-                "root_cause_explanation": "【业务场景因果追溯】调用发生在 [com.qq.e.comm.plugin.apk.DownloadService::silentEnqueue()]。该应用属于【实用工具 (浏览器/下载/清理)】，文件网络下载系核心主营业务功能支撑。基于四部委《规定》第32条，调用系统原生 DownloadManager 不属于违规诱导下载，给予场景化全额豁免。",
-                "targeted_code_patch": "// [合规建议] DownloadManager 属于浏览器必备能力，保留调用，但建议在触发下载前向用户展示标准确认弹窗：\nnew AlertDialog.Builder(context)\n    .setTitle(\"下载任务确认\")\n    .setMessage(\"即将下载文件: \" + fileName + \"，是否继续？\")\n    .setPositiveButton(\"开始下载\", (d, w) -> downloadManager.enqueue(request))\n    .show();"
+               "business_necessity": "ESSENTIAL",
+               "verdict_action": "场景合理·全额豁免扣分 (+5分)",
+               "original_points": 5,
+               "adjusted_points": 0,
+                "root_cause_explanation": "【业务场景因果追溯】调用发生在 [com.qq.e.comm.plugin.apk.DownloadService::silentEnqueue()]。该应用属于【浏览器类 (第32类)】，文件网络下载系核心主营业务功能支撑。基于国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项，调用系统原生 DownloadManager 不属于违规诱导下载，给予场景化全额豁免。",
+               "targeted_code_patch": "// [合规建议] DownloadManager 属于浏览器必备能力，保留调用，但建议在触发下载前向用户展示标准确认弹窗：\nnew AlertDialog.Builder(context)\n    .setTitle(\"下载任务确认\")\n    .setMessage(\"即将下载文件: \" + fileName + \"，是否继续？\")\n    .setPositiveButton(\"开始下载\", (d, w) -> downloadManager.enqueue(request))\n    .show();"
             },
             {
                 "rule_id": "MIIT-09-AUTOSTART-WAKE",
@@ -3821,15 +3824,15 @@
             }
         ],
         "regulatory_citations": [
-            "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
-            "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
+            "《中华人民共和国个人信息保护法》第六条（最小必要原则）、第十七条（告知义务）",
+            "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项：浏览器类，无须个人信息即可使用基本功能服务",
             "工信部信管函〔2023〕26号 · 移动互联网应用程序个人信息保护管理若干规定",
             "国家标准 GB/T 35273-2020《信息安全技术 个人信息安全规范》第 5.4 条（最小化要求）"
         ],
         "timestamp": "2026-09-13 22:35:48"
     },
-    "app_category": "browser_utility",
-    "app_category_name": "实用工具 (浏览器/下载/清理)",
+    "app_category": "web_browser",
+    "app_category_name": "浏览器类 (第32类)",
     "app_description": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
 };
 
@@ -3882,44 +3885,48 @@
 
         let CATEGORY_METAS = {
             "web_browser": {
-                "law_ref": "四部委《规定》第32条：浏览器类，无须个人信息即可使用基本功能服务",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项：浏览器类，无须个人信息即可使用基本功能服务",
                 "sample": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
             },
             "map_navigation": {
-                "law_ref": "四部委《规定》第1条：地图导航类，必要信息为经纬度位置信息、出发地、到达地",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(1)项：地图导航类，必要信息为经纬度位置信息、出发地、到达地",
                 "sample": "高精度电子地图与智能路线导航应用，提供实时路线规划、路况提醒与周边生活检索服务。"
             },
             "instant_messaging": {
-                "law_ref": "四部委《规定》第3条：即时通信类，必要信息为注册用户移动电话号码、账号与好友列表",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(3)项：即时通信类，必要信息为注册用户移动电话号码、账号与好友列表",
                 "sample": "支持文字、语音、实时音视频通讯与朋友圈动态分享的即时社交软件。"
             },
             "online_shopping": {
-                "law_ref": "四部委《规定》第4条：网上购物类，必要信息为购买人姓名、送货地址、联系电话、支付信息",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(4)项：网络社区与购物类，必要信息为购买人姓名、送货地址、联系电话、支付信息",
                 "sample": "综合型移动电商购物平台，提供商品选购、智能搜索、在线支付与订单物流追踪功能。"
             },
             "online_gaming": {
-                "law_ref": "四部委《规定》第22条：网络游戏类，基本功能为提供游戏产品服务，必要信息为实名认证身份信息",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(22)项：网络游戏类，基本功能为提供游戏产品服务，必要信息为实名认证身份信息",
                 "sample": "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，无需麦克风与通讯录。"
             },
             "photography_beautification": {
-                "law_ref": "四部委《规定》第18条：拍摄美颜类，无须个人信息即可使用基本功能服务",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(36)项：拍摄美化类，无须个人信息即可使用基本功能服务",
                 "sample": "专业级手机滤镜相机与图片特效后期处理工具，提供实时美颜滤镜与海报排版功能。"
             },
             "mobile_banking": {
-                "law_ref": "四部委《规定》第10条：网络支付与理财类，必要信息为实名身份、银行卡信息与验证手机号",
-                "sample": "提供移动支付、生活缴费、账户转账及稳健理财服务的综合金融服务客户端，需人脸生物识别与安全风控。"
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(24)项：手机银行类，必要信息为手机号、姓名、证件、银行卡、密码",
+                "sample": "提供账户查询、转账汇款及投资理财服务的银行移动客户端，遵循法定必要个人信息清单。"
             },
             "online_payment": {
-                "law_ref": "四部委《规定》第5条：网络支付类，必要信息为注册用户电话号码、姓名、证件类型和号码、银行卡号",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(5)项：网络支付类，必要信息为注册电话、姓名、证件、银行卡号",
                 "sample": "移动支付与综合数字金融生活平台，用于安全转账、扫码收付款、政务民生及生活缴费，需合规生物认证与交易安全风控。"
             },
             "postal_delivery": {
-                "law_ref": "四部委《规定》第8条：邮件快件寄递类，必要信息为寄件人姓名证件联系电话、收件人姓名地址电话、寄递物品信息",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(8)项：邮件快件寄递类，必要信息为寄件人姓名证件电话、收件人姓名地址电话、寄递物品",
                 "sample": "综合型移动电商与智慧物流平台，提供快递包裹多端追踪、就近驿站自提通知及寄件履约服务。"
             },
             "short_video": {
-                "law_ref": "四部委《规定》第29条：短视频类，无须个人信息即可使用基本功能服务",
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(29)项：短视频类，无须个人信息即可使用基本功能服务",
                 "sample": "短视频创作与社交分享平台，提供拍摄录制、滤镜特效渲染、即时互动与推荐播放服务，需合规调用相机与麦克风。"
+            },
+            "utility_tools": {
+                "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(38)项：实用工具类，无须个人信息即可使用基本功能服务",
+                "sample": "移动终端常用实用工具软件，基本功能无须个人信息即可使用。"
             },
             "general_custom": {
                 "law_ref": "《个人信息保护法》第六条：收集个人信息应当限于实现处理目的的最小范围，不得过度收集",

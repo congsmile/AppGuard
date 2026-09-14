@@ -14,7 +14,7 @@
       "android.net.wifi.WifiManager -> getConnectionInfo"
     ],
     "legitimate_scenarios": "地图导航类核心基本功能服务为“定位和导航”，调用经纬度定位与网络辅助定位属于法定必要信息支撑，具有充分的业务因果正当性。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁在非导航出行或后台挂起期间持续高频窃取行踪轨迹；严禁全盘扫描相册与通讯录；严禁利用无感知加速度传感器进行开屏摇一摇广告跳转。",
     "sample_description": "地图导航类移动应用，基本功能服务为‘定位和导航’。四部委法定必要个人信息要求：必要个人信息为：位置信息、出发地、到达地。"
   },
   "ride_hailing": {
@@ -29,10 +29,10 @@
     "legitimate_apis": [
       "android.location.LocationManager -> getLastKnownLocation",
       "android.location.LocationManager -> requestLocationUpdates",
-      "android.net.wifi.WifiManager -> getConnectionInfo"
+      "android.telephony.TelephonyManager -> getLine1Number"
     ],
     "legitimate_scenarios": "网络约车类核心基本功能服务为“网络预约出租汽车服务、巡游出租汽车电召服务”，调用经纬度定位与网络辅助定位属于法定必要信息支撑，具有充分的业务因果正当性。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁行程结束或后台静默期持续窃取高精经纬度轨迹；严禁索取与司乘联系完全无关的通话记录与全盘相册文件。",
     "sample_description": "网络约车类移动应用，基本功能服务为‘网络预约出租汽车服务、巡游出租汽车电召服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.乘车人出发地、到达地、位置信息、行踪轨迹； 3.支付时间、支付金额、支付渠道等支付信息（网络预约出租汽车服务）。"
   },
   "instant_messaging": {
@@ -50,7 +50,7 @@
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "即时通信类核心服务为“提供文字、图片、语音、视频等网络即时通信服务”，在前台主动沟通时调用麦克风录音、摄像头通话与文本粘贴属于基本沟通功能组成部分。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁未获授权暗中上传手机通讯录全量列表；严禁未在前台通话时后台暗中唤醒麦克风偷录音频；严禁私自获取底层硬件设备码。",
     "sample_description": "即时通信类移动应用，基本功能服务为‘提供文字、图片、语音、视频等网络即时通信服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.账号信息：账号、即时通信联系人账号列表。"
   },
   "online_community": {
@@ -62,9 +62,13 @@
     "basic_service": "博客、论坛、社区等话题讨论、信息分享和关注互动",
     "necessary_info": "必要个人信息为：注册用户移动电话号码。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.hardware.Camera -> open",
+      "android.content.ClipboardManager -> getPrimaryClip",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "网络社区类基本功能服务为“博客、论坛、社区等话题讨论、信息分享和关注互动”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁冷启动静默读取剪贴板用于跨域画像归因；严禁非发帖头像场景私自扫描相册；严禁强制索取通讯录或常驻经纬度定位。",
     "sample_description": "网络社区类移动应用，基本功能服务为‘博客、论坛、社区等话题讨论、信息分享和关注互动’。四部委法定必要个人信息要求：必要个人信息为：注册用户移动电话号码。"
   },
   "online_payment": {
@@ -78,10 +82,10 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.hardware.Camera -> open",
-      "android.location.LocationManager -> getLastKnownLocation"
+      "android.hardware.biometrics.BiometricPrompt -> authenticate"
     ],
     "legitimate_scenarios": "扫码支付、人脸核验与交易所在地反欺诈风控定位属于强合规风控需求。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "依据四部委法定标准其必要信息不包含位置，严禁将风控作为借口强制常驻后台高精定位；严禁过度读取已安装应用列表与通讯录。",
     "sample_description": "网络支付类移动应用，基本功能服务为‘网络支付、提现、转账等功能’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.注册用户姓名、证件类型和号码、证件有效期限、银行卡号码。"
   },
   "online_shopping": {
@@ -94,11 +98,12 @@
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.收货人姓名（名称）、地址、联系电话； 3.支付时间、支付金额、支付渠道等支付信息。",
     "no_info_needed": false,
     "legitimate_apis": [
-      "android.location.LocationManager -> getLastKnownLocation",
-      "android.content.ClipboardManager -> getPrimaryClip"
+      "android.content.ClipboardManager -> getPrimaryClip",
+      "android.hardware.Camera -> open",
+      "android.app.DownloadManager -> enqueue"
     ],
     "legitimate_scenarios": "网上购物类核心服务为“购买商品”，获取地理位置用于就近地址配送推荐，前台粘贴用于口令/券码解析。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁冷启动高频暗中嗅探剪贴板跨域追踪用户；严禁索取手机通讯录与通话记录；严禁非扫码核验场景私自后台启动摄像头。",
     "sample_description": "网上购物类移动应用，基本功能服务为‘购买商品’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.收货人姓名（名称）、地址、联系电话； 3.支付时间、支付金额、支付渠道等支付信息。"
   },
   "food_delivery": {
@@ -115,7 +120,7 @@
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "餐饮外卖类核心服务为“餐饮购买及外送”，获取地理位置用于就近地址配送推荐，前台粘贴用于口令/券码解析。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非下单收货场景后台持续采集行踪经纬度；严禁私自读取手机通讯录与相册全盘文件；严禁开屏摇一摇误触跳转。",
     "sample_description": "餐饮外卖类移动应用，基本功能服务为‘餐饮购买及外送’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.收货人姓名（名称）、地址、联系电话； 3.支付时间、支付金额、支付渠道等支付信息。"
   },
   "postal_delivery": {
@@ -129,10 +134,11 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.location.LocationManager -> getLastKnownLocation",
+      "android.hardware.Camera -> open",
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "邮件快件寄递类核心服务为“信件、包裹、印刷品等物品寄递服务”，获取地理位置用于就近地址配送推荐，前台粘贴用于口令/券码解析。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁在非查件寄件期间后台常驻收集地理位置；严禁索取用户通话记录；严禁利用微小晃动高频监听传感器跳广告。",
     "sample_description": "邮件快件寄递类移动应用，基本功能服务为‘信件、包裹、印刷品等物品寄递服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.寄件人姓名、证件类型和号码等身份信息； 2.寄件人地址、联系电话； 3.收件人姓名（名称）、地址、联系电话； 4.寄递物品的名称、性质、数量。"
   },
   "traffic_ticketing": {
@@ -144,9 +150,12 @@
     "basic_service": "交通相关的票务服务及行程管理（如票务购买、改签、退票、行程管理等）",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.旅客姓名、证件类型和号码、旅客类型。旅客类型通常包括儿童、成人、学生等； 3.旅客出发地、目的地、出发时间、车次/船次/航班号、席别/舱位等级、座位号（如有）、车牌号及车牌颜色（ETC服务)； 4.支付时间、支付金额、支付渠道等支付信息。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "交通票务类基本功能服务为“交通相关的票务服务及行程管理（如票务购买、改签、退票、行程管理等）”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非购票出行期间后台静默收集经纬度轨迹；严禁向未经安全评估的第三方商业 SDK 泄露旅客真实身份证件信息。",
     "sample_description": "交通票务类移动应用，基本功能服务为‘交通相关的票务服务及行程管理（如票务购买、改签、退票、行程管理等）’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.旅客姓名、证件类型和号码、旅客类型。旅客类型通常包括儿童、成人、学生等； 3.旅客出发地、目的地、出发时间、车次/船次/航班号、席别/舱位等级、座位号（如有）、车牌号及车牌颜色（ETC服务)； 4.支付时间、支付金额、支付渠道等支付信息。"
   },
   "dating_matchmaking": {
@@ -158,9 +167,12 @@
     "basic_service": "婚恋相亲",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.婚恋相亲人的性别、年龄、婚姻状况。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.hardware.Camera -> open",
+      "android.location.LocationManager -> getLastKnownLocation"
+    ],
     "legitimate_scenarios": "婚恋相亲类基本功能服务为“婚恋相亲”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁以婚恋交友为由诱导上传全量手机通讯录；严禁未明示将用户精准行踪轨迹与个人私密资料对外展示或商业售卖。",
     "sample_description": "婚恋相亲类移动应用，基本功能服务为‘婚恋相亲’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.婚恋相亲人的性别、年龄、婚姻状况。"
   },
   "job_recruitment": {
@@ -172,9 +184,13 @@
     "basic_service": "求职招聘信息交换",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.求职者提供的简历。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.hardware.Camera -> open",
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "求职招聘类基本功能服务为“求职招聘信息交换”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非视频面试场景暗中调用麦克风或摄像头；严禁强制索取求职者手机通讯录；严禁未经同意将求职简历外泄给第三方。",
     "sample_description": "求职招聘类移动应用，基本功能服务为‘求职招聘信息交换’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.求职者提供的简历。"
   },
   "online_lending": {
@@ -188,10 +204,10 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.hardware.Camera -> open",
-      "android.location.LocationManager -> getLastKnownLocation"
+      "android.hardware.biometrics.BiometricPrompt -> authenticate"
     ],
     "legitimate_scenarios": "扫码支付、人脸核验与交易所在地反欺诈风控定位属于强合规风控需求。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁以信用评估为由强制读取借款人全量通讯录与通话记录；严禁非法获取全盘相册文件；严禁对非借款第三人施加催收骚扰。",
     "sample_description": "网络借贷类移动应用，基本功能服务为‘通过互联网平台实现的用于消费、日常生产经营周转等的个人申贷服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.借款人姓名、证件类型和号码、证件有效期限、银行卡号码。"
   },
   "real_estate": {
@@ -203,9 +219,12 @@
     "basic_service": "个人房源信息发布、房屋出租或买卖",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.房源基本信息：房屋地址、面积/户型、期望售价或租金。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.hardware.Camera -> open"
+    ],
     "legitimate_scenarios": "房屋租售类基本功能服务为“个人房源信息发布、房屋出租或买卖”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非看房场景后台隐秘窃取经纬度轨迹；严禁强制索取房产证件外的非必要财产隐私与手机通讯录。",
     "sample_description": "房屋租售类移动应用，基本功能服务为‘个人房源信息发布、房屋出租或买卖’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.房源基本信息：房屋地址、面积/户型、期望售价或租金。"
   },
   "used_car_trading": {
@@ -217,9 +236,12 @@
     "basic_service": "二手车买卖信息交换",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.购买方姓名、证件类型和号码； 3.出售方姓名、证件类型和号码、车辆行驶证号、车辆识别号码。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.hardware.Camera -> open"
+    ],
     "legitimate_scenarios": "二手车交易类基本功能服务为“二手车买卖信息交换”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁过度索取车主非公开行车轨迹；严禁非车辆核验拍照场景私自扫描相册无关照片与通讯录。",
     "sample_description": "二手车交易类移动应用，基本功能服务为‘二手车买卖信息交换’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.购买方姓名、证件类型和号码； 3.出售方姓名、证件类型和号码、车辆行驶证号、车辆识别号码。"
   },
   "medical_consultation": {
@@ -231,9 +253,13 @@
     "basic_service": "在线咨询问诊、预约挂号",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.挂号时需提供患者姓名、证件类型和号码、预约挂号的医院和科室； 3.问诊时需提供病情描述。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.hardware.Camera -> open",
+      "android.media.AudioRecord -> startRecording"
+    ],
     "legitimate_scenarios": "问诊挂号类基本功能服务为“在线咨询问诊、预约挂号”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁违规共享患者病历、处方等敏感健康生理信息；严禁非图文/视频问诊时暗中开启录音或拍照设备。",
     "sample_description": "问诊挂号类移动应用，基本功能服务为‘在线咨询问诊、预约挂号’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.挂号时需提供患者姓名、证件类型和号码、预约挂号的医院和科室； 3.问诊时需提供病情描述。"
   },
   "travel_service": {
@@ -245,9 +271,12 @@
     "basic_service": "旅游服务产品信息的发布与订购",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.出行人旅游目的地、旅游时间； 3.出行人姓名、证件类型和号码、联系方式。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "旅游服务类基本功能服务为“旅游服务产品信息的发布与订购”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁在非行程期间后台静默追踪地理轨迹；严禁将旅客护照与证件信息过度同步至商业营销画像平台。",
     "sample_description": "旅游服务类移动应用，基本功能服务为‘旅游服务产品信息的发布与订购’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.出行人旅游目的地、旅游时间； 3.出行人姓名、证件类型和号码、联系方式。"
   },
   "hotel_booking": {
@@ -259,9 +288,12 @@
     "basic_service": "酒店预订",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.住宿人姓名和联系方式、入住和退房时间、入住酒店名称。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "酒店服务类基本功能服务为“酒店预订”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁在非检索入住期间后台持续收集行踪轨迹；严禁过度索取与订房登记无关的个人社交关系链。",
     "sample_description": "酒店服务类移动应用，基本功能服务为‘酒店预订’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.住宿人姓名和联系方式、入住和退房时间、入住酒店名称。"
   },
   "online_gaming": {
@@ -277,7 +309,7 @@
       "android.app.DownloadManager -> enqueue"
     ],
     "legitimate_scenarios": "游戏启动与运行期间在线下载资源补丁、DLC包属于正常业务支撑。",
-    "strict_redlines": "严禁非体感对战场景高频监听加速度计用于开屏广告误触；严禁索取通讯录或短信；严禁违规读取设备底层序列号用于灰产封禁追踪。",
+    "strict_redlines": "严禁非体感对战场景高频监听加速度计用于开屏广告误触；严禁索取通讯录或短信；严禁违规读取设备底层序列号用于追踪。",
     "sample_description": "网络游戏类移动应用，基本功能服务为‘提供网络游戏产品和服务’。四部委法定必要个人信息要求：必要个人信息为：注册用户移动电话号码。"
   },
   "online_education": {
@@ -289,9 +321,13 @@
     "basic_service": "在线辅导、网络课堂等",
     "necessary_info": "必要个人信息为：注册用户移动电话号码。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.media.AudioRecord -> startRecording",
+      "android.hardware.Camera -> open",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "学习教育类基本功能服务为“在线辅导、网络课堂等”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严格落实未成年人个人信息特殊保护规定；严禁在课堂直播外非明示调用麦克风或摄像头；严禁索取精准地理位置。",
     "sample_description": "学习教育类移动应用，基本功能服务为‘在线辅导、网络课堂等’。四部委法定必要个人信息要求：必要个人信息为：注册用户移动电话号码。"
   },
   "local_life": {
@@ -305,10 +341,11 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.location.LocationManager -> getLastKnownLocation",
+      "android.hardware.Camera -> open",
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "本地生活类核心服务为“家政维修、家居装修、二手闲置物品交易等日常生活服务”，获取地理位置用于就近地址配送推荐，前台粘贴用于口令/券码解析。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁未获授权暗中上传手机相册与通讯录；严禁在非同城生活检索期间后台静默采集位置轨迹。",
     "sample_description": "本地生活类移动应用，基本功能服务为‘家政维修、家居装修、二手闲置物品交易等日常生活服务’。四部委法定必要个人信息要求：必要个人信息为：注册用户移动电话号码。"
   },
   "women_health": {
@@ -320,9 +357,12 @@
     "basic_service": "女性经期管理、备孕育儿、美容美体等健康管理服务",
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.app.AlarmManager -> setExact",
+      "android.app.NotificationManager -> notify"
+    ],
     "legitimate_scenarios": "女性健康类基本功能服务为“女性经期管理、备孕育儿、美容美体等健康管理服务”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能，严禁强制索取用户身份或位置；严禁将生理健康数据上传至未披露的商业分析库。",
     "sample_description": "女性健康类移动应用，基本功能服务为‘女性经期管理、备孕育儿、美容美体等健康管理服务’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "vehicle_service": {
@@ -334,9 +374,12 @@
     "basic_service": "共享单车、共享汽车、租赁汽车等服务",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.使用共享汽车、租赁汽车服务用户的证件类型和号码，驾驶证件信息； 3.支付时间、支付金额、支付渠道等支付信息； 4.使用共享单车、分时租赁汽车服务用户的位置信息。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.bluetooth.BluetoothAdapter -> getBondedDevices"
+    ],
     "legitimate_scenarios": "用车服务类基本功能服务为“共享单车、共享汽车、租赁汽车等服务”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非寻车导航场景过度索取行车经纬度轨迹；严禁私自扫描车载蓝牙设备列表用于跨域用户追踪画像。",
     "sample_description": "用车服务类移动应用，基本功能服务为‘共享单车、共享汽车、租赁汽车等服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.使用共享汽车、租赁汽车服务用户的证件类型和号码，驾驶证件信息； 3.支付时间、支付金额、支付渠道等支付信息； 4.使用共享单车、分时租赁汽车服务用户的位置信息。"
   },
   "investment_finance": {
@@ -350,10 +393,10 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.hardware.Camera -> open",
-      "android.location.LocationManager -> getLastKnownLocation"
+      "android.hardware.biometrics.BiometricPrompt -> authenticate"
     ],
     "legitimate_scenarios": "扫码支付、人脸核验与交易所在地反欺诈风控定位属于强合规风控需求。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非开户见证场景暗中开启麦克风或摄像头；严禁强制索取定位；严禁过度收集已安装理财应用列表进行营销。",
     "sample_description": "投资理财类移动应用，基本功能服务为‘股票、期货、基金、债券等相关投资理财服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.投资理财用户姓名、证件类型和号码、证件有效期限、证件影印件； 3.投资理财用户资金账户、银行卡号码或支付账号。"
   },
   "mobile_banking": {
@@ -367,10 +410,10 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.hardware.Camera -> open",
-      "android.location.LocationManager -> getLastKnownLocation"
+      "android.hardware.biometrics.BiometricPrompt -> authenticate"
     ],
     "legitimate_scenarios": "扫码支付、人脸核验与交易所在地反欺诈风控定位属于强合规风控需求。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "依据四部委法定标准其必要信息不包含位置，严禁将风控作为借口强制常驻后台高精定位；严禁私自读取通讯录与短信。",
     "sample_description": "手机银行类移动应用，基本功能服务为‘通过手机等移动智能终端设备进行银行账户管理、信息查询、转账汇款等服务’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.用户姓名、证件类型和号码、证件有效期限、证件影印件、银行卡号码、银行预留移动电话号码； 3.转账时需提供收款人姓名、银行卡号码、开户银行信息。"
   },
   "email_cloud_storage": {
@@ -384,10 +427,10 @@
     "no_info_needed": false,
     "legitimate_apis": [
       "android.app.DownloadManager -> enqueue",
-      "android.content.ClipboardManager -> getPrimaryClip"
+      "android.os.Environment -> getExternalStorageDirectory"
     ],
     "legitimate_scenarios": "邮箱云盘类的核心服务为“邮箱、云盘等”，文件网络下载属于核心业务链路；前台交互触发式剪贴板读取用于快速搜索/导航，具有合理业务关联。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁以云盘同步为名暗中扫描上传非选定相册照片；严禁索取与邮件收发无关的通讯录联系人与地理位置。",
     "sample_description": "邮箱云盘类移动应用，基本功能服务为‘邮箱、云盘等’。四部委法定必要个人信息要求：必要个人信息为：注册用户移动电话号码。"
   },
   "remote_conferencing": {
@@ -402,10 +445,10 @@
     "legitimate_apis": [
       "android.media.AudioRecord -> startRecording",
       "android.hardware.Camera -> open",
-      "android.content.ClipboardManager -> getPrimaryClip"
+      "android.app.DownloadManager -> enqueue"
     ],
     "legitimate_scenarios": "远程会议类核心服务为“通过网络提供音频或视频会议”，在前台主动沟通时调用麦克风录音、摄像头通话与文本粘贴属于基本沟通功能组成部分。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁在会议挂断后后台持续监听麦克风音频流；严禁未经明示授权将参会人面部特征上传至第三方人脸识别模型。",
     "sample_description": "远程会议类移动应用，基本功能服务为‘通过网络提供音频或视频会议’。四部委法定必要个人信息要求：必要个人信息为：注册用户移动电话号码。"
   },
   "live_streaming": {
@@ -418,10 +461,11 @@
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
     "legitimate_apis": [
-      "android.content.ClipboardManager -> getPrimaryClip"
+      "android.media.AudioRecord -> startRecording",
+      "android.hardware.Camera -> open"
     ],
     "legitimate_scenarios": "网络直播类基本功能为“向公众持续提供实时视频、音频、图文等形式信息浏览服务”，依法无须个人信息即可使用基础浏览播放服务。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能（观众端）；严禁非开播状态暗中后台录音录像；严禁索取观众端通讯录与位置。",
     "sample_description": "网络直播类移动应用，基本功能服务为‘向公众持续提供实时视频、音频、图文等形式信息浏览服务’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "audio_video_playback": {
@@ -434,10 +478,11 @@
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
     "legitimate_apis": [
-      "android.content.ClipboardManager -> getPrimaryClip"
+      "android.media.MediaPlayer",
+      "android.app.DownloadManager -> enqueue"
     ],
     "legitimate_scenarios": "在线影音类基本功能为“影视、音乐搜索和播放”，依法无须个人信息即可使用基础浏览播放服务。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能，严禁以‘不给定位/不给相册权限就不让听歌看剧’阻断播放；严禁开屏摇一摇跳转。",
     "sample_description": "在线影音类移动应用，基本功能服务为‘影视、音乐搜索和播放’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "short_video": {
@@ -450,10 +495,12 @@
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
     "legitimate_apis": [
+      "android.hardware.Camera -> open",
+      "android.media.AudioRecord -> startRecording",
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "短视频类基本功能为“不超过一定时长的视频搜索、播放”，依法无须个人信息即可使用基础浏览播放服务。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能（浏览端）；严禁冷启动强制索取麦克风与位置；严禁静默嗅探剪贴板跨域追踪。",
     "sample_description": "短视频类移动应用，基本功能服务为‘不超过一定时长的视频搜索、播放’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "news_information": {
@@ -465,9 +512,12 @@
     "basic_service": "新闻资讯的浏览、搜索",
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.content.ClipboardManager -> getPrimaryClip",
+      "android.app.DownloadManager -> enqueue"
+    ],
     "legitimate_scenarios": "新闻资讯类基本功能服务为“新闻资讯的浏览、搜索”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能，严禁以拒绝授权定位为由阻断资讯阅读；严禁冷启动静默读取剪贴板追踪口令。",
     "sample_description": "新闻资讯类移动应用，基本功能服务为‘新闻资讯的浏览、搜索’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "fitness_exercise": {
@@ -479,9 +529,12 @@
     "basic_service": "运动健身训练",
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.hardware.SensorManager -> registerListener",
+      "android.location.LocationManager -> requestLocationUpdates"
+    ],
     "legitimate_scenarios": "运动健身类基本功能服务为“运动健身训练”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能；严禁利用计步传感器进行开屏广告摇一摇跳转；严禁非运动跑步场景后台常驻定位。",
     "sample_description": "运动健身类移动应用，基本功能服务为‘运动健身训练’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "web_browser": {
@@ -498,7 +551,7 @@
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "浏览器类的核心服务为“浏览互联网信息资源”，文件网络下载属于核心业务链路；前台交互触发式剪贴板读取用于快速搜索/导航，具有合理业务关联。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能，严禁未授权暗中收集敏感数据；严禁利用传感器监听开屏广告摇一摇；严禁索取通讯录。",
     "sample_description": "浏览器类移动应用，基本功能服务为‘浏览互联网信息资源’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "input_method": {
@@ -510,9 +563,12 @@
     "basic_service": "文字、符号等输入",
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.inputmethodservice.InputMethodService",
+      "android.content.ClipboardManager -> getPrimaryClip"
+    ],
     "legitimate_scenarios": "输入法类基本功能服务为“文字、符号等输入”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能；严禁在非输入状态暗中上传用户击键记录与剪贴板；严禁索取无关的定位和通讯录。",
     "sample_description": "输入法类移动应用，基本功能服务为‘文字、符号等输入’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "security_management": {
@@ -524,9 +580,12 @@
     "basic_service": "查杀病毒、清理恶意插件、修复漏洞等",
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.content.pm.PackageManager -> getInstalledPackages",
+      "android.app.ActivityManager -> getRunningAppProcesses"
+    ],
     "legitimate_scenarios": "安全管理类基本功能服务为“查杀病毒、清理恶意插件、修复漏洞等”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能；严禁将用户已安装软件列表上传商业广告库；严禁未明示暗中执行后台关联唤醒。",
     "sample_description": "安全管理类移动应用，基本功能服务为‘查杀病毒、清理恶意插件、修复漏洞等’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "e_books": {
@@ -538,9 +597,12 @@
     "basic_service": "电子图书搜索、阅读",
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.app.DownloadManager -> enqueue",
+      "android.content.ClipboardManager -> getPrimaryClip"
+    ],
     "legitimate_scenarios": "电子图书类基本功能服务为“电子图书搜索、阅读”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能；严禁强制索取通讯录、地理位置或相册权限；严禁开屏利用微小晃动误触跳过广告。",
     "sample_description": "电子图书类移动应用，基本功能服务为‘电子图书搜索、阅读’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "photography_beautification": {
@@ -553,10 +615,11 @@
     "necessary_info": "无须个人信息，即可使用基本功能服务。",
     "no_info_needed": true,
     "legitimate_apis": [
-      "android.hardware.Camera -> open"
+      "android.hardware.Camera -> open",
+      "android.media.AudioRecord -> startRecording"
     ],
     "legitimate_scenarios": "拍照与视频录制属于核心业务，需调用摄像头（应在用户主动拍照时动态请求，推荐优先接入 PhotoPicker）。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能，严禁以不提供电话或位置权限为由剥夺基础拍照功能；严禁全盘遍历扫描相册未选定照片。",
     "sample_description": "拍摄美化类移动应用，基本功能服务为‘拍摄、美颜、滤镜等’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "app_store": {
@@ -570,10 +633,10 @@
     "no_info_needed": true,
     "legitimate_apis": [
       "android.app.DownloadManager -> enqueue",
-      "android.content.ClipboardManager -> getPrimaryClip"
+      "android.content.pm.PackageManager -> getInstalledPackages"
     ],
     "legitimate_scenarios": "应用商店类的核心服务为“App搜索、下载”，文件网络下载属于核心业务链路；前台交互触发式剪贴板读取用于快速搜索/导航，具有合理业务关联。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能；严禁非软件升级检查场景私自采集全量应用列表；严禁诱导欺骗强制静默下载安装应用。",
     "sample_description": "应用商店类移动应用，基本功能服务为‘App搜索、下载’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "utility_tools": {
@@ -590,7 +653,7 @@
       "android.content.ClipboardManager -> getPrimaryClip"
     ],
     "legitimate_scenarios": "实用工具类的核心服务为“日历、天气、词典翻译、计算器、遥控器、手电筒、指南针、时钟闹钟、文件传输、文件管理、壁纸铃声、截图录屏、录音、文档处理、智能家居助手、星座性格测试等”，文件网络下载属于核心业务链路；前台交互触发式剪贴板读取用于快速搜索/导航，具有合理业务关联。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "法定无须个人信息即可使用基本功能；严禁计算器、手电筒等轻量工具索取通讯录、位置与短信权限；严禁开屏摇一摇。",
     "sample_description": "实用工具类移动应用，基本功能服务为‘日历、天气、词典翻译、计算器、遥控器、手电筒、指南针、时钟闹钟、文件传输、文件管理、壁纸铃声、截图录屏、录音、文档处理、智能家居助手、星座性格测试等’。四部委法定必要个人信息要求：无须个人信息，即可使用基本功能服务。"
   },
   "show_ticketing": {
@@ -602,9 +665,12 @@
     "basic_service": "演出购票",
     "necessary_info": "必要个人信息包括： 1.注册用户移动电话号码； 2.观演场次、座位号（如有）； 3.支付时间、支付金额、支付渠道等支付信息。 第六条 任何组织和个人发现违反本规定行为的，可以向相关部门举报。 相关部门收到举报后，应当依法予以处理。 第七条 本规定自2021年5月1日起施行。 关闭 中央网络安全和信息化委员会办公室                 中华人民共和国国家互联网信息办公室 &copy; 版权所有                 联系我们 承办：国家互联网应急中心　技术支持：长安通信科技有限责任公司　京ICP备14042428号　京公网安备11040102700108号 学习强国 ◆ ◆ 微信 ◆ ◆ 返回顶部 中央网络安全和信息化委员会办公室 中华人民共和国国家互联网信息办公室 &copy; 版权所有 承办：国家互联网应急中心 技术支持：长安通信科技有限责任公司 京ICP备14042428号 京公网安备11040102700108号 PC版 Produced By CMS 网站群内容管理系统 publishdate:2024/01/05 22:23:49function pagestat(){var urlfrom = ''; if (document.referrer.length > 0) { urlfrom = document.referrer; } try { if (urlfrom.length == 0 && opener.location.href.length > 0) { urlfrom = opener.location.href; } } catch (e) {} var re=new RegExp(\" \",\"gi\"); urlfrom = urlfrom.replace(re,\"\"); if(urlfrom.indexOf(\"tagpre\")>0||urlfrom.indexOf(\"result\")>0)  urlfrom=\"\"; var title = document.title; $.ajax({type:'POST',url: '/cms/cmsadmin/infopub/pagestat.jsp?crToken='+crToken,data:{webappcode:\"A09\",code:\"A093702\",infoId:\"1617991008006285\",title:title,urlfrom:encodeURI(urlfrom)},success:function(data){}});}pagestat();",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.location.LocationManager -> getLastKnownLocation",
+      "android.hardware.Camera -> open"
+    ],
     "legitimate_scenarios": "演出票务类基本功能服务为“演出购票”，严格限定在实现业务处理目的的最小范围。",
-    "strict_redlines": "严禁在用户明示同意前暗中收集任何敏感数据；严禁利用无感知传感器监听进行开屏广告摇一摇跳转；严禁索取与主营功能无关的通讯录或通话记录。",
+    "strict_redlines": "严禁非同城场馆核销场景私自调用摄像头拍照；严禁过度索取观演人与购票业务无关的私人通信信息与相册。",
     "sample_description": "演出票务类移动应用，基本功能服务为‘演出购票’。四部委法定必要个人信息要求：必要个人信息包括： 1.注册用户移动电话号码； 2.观演场次、座位号（如有）； 3.支付时间、支付金额、支付渠道等支付信息。 第六条 任何组织和个人发现违反本规定行为的，可以向相关部门举报。 相关部门收到举报后，应当依法予以处理。 第七条 本规定自2021年5月1日起施行。 关闭 中央网络安全和信息化委员会办公室                 中华人民共和国国家互联网信息办公室 &copy; 版权所有                 联系我们 承办：国家互联网应急中心　技术支持：长安通信科技有限责任公司　京ICP备14042428号　京公网安备11040102700108号 学习强国 ◆ ◆ 微信 ◆ ◆ 返回顶部 中央网络安全和信息化委员会办公室 中华人民共和国国家互联网信息办公室 &copy; 版权所有 承办：国家互联网应急中心 技术支持：长安通信科技有限责任公司 京ICP备14042428号 京公网安备11040102700108号 PC版 Produced By CMS 网站群内容管理系统 publishdate:2024/01/05 22:23:49function pagestat(){var urlfrom = ''; if (document.referrer.length > 0) { urlfrom = document.referrer; } try { if (urlfrom.length == 0 && opener.location.href.length > 0) { urlfrom = opener.location.href; } } catch (e) {} var re=new RegExp(\" \",\"gi\"); urlfrom = urlfrom.replace(re,\"\"); if(urlfrom.indexOf(\"tagpre\")>0||urlfrom.indexOf(\"result\")>0)  urlfrom=\"\"; var title = document.title; $.ajax({type:'POST',url: '/cms/cmsadmin/infopub/pagestat.jsp?crToken='+crToken,data:{webappcode:\"A09\",code:\"A093702\",infoId:\"1617991008006285\",title:title,urlfrom:encodeURI(urlfrom)},success:function(data){}});}pagestat();"
   },
   "general_custom": {
@@ -616,9 +682,12 @@
     "basic_service": "专用业务功能服务",
     "necessary_info": "根据开发者申报的具体业务功能，结合用户主观诉求与透明告知原则综合研判。",
     "no_info_needed": false,
-    "legitimate_apis": [],
+    "legitimate_apis": [
+      "android.app.DownloadManager -> enqueue",
+      "android.content.ClipboardManager -> getPrimaryClip"
+    ],
     "legitimate_scenarios": "根据开发者申报的具体业务功能，结合用户主观诉求与透明告知原则综合研判。",
-    "strict_redlines": "严禁在《隐私政策》明示授权前执行静默收集；严禁隐藏、混淆第三方 SDK 的真实数据外发行为。",
+    "strict_redlines": "严禁在《隐私政策》明示授权前执行任何后台静默收集；严禁开屏阶段注册加速度传感器用于摇一摇广告；严禁过度收集位置。",
     "sample_description": "面向移动终端的专用业务服务应用程序。"
   }
 }

@@ -14,7 +14,7 @@ import json
 import time
 import urllib.request
 import urllib.error
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "outputs", "agent_config.json")
 
@@ -65,6 +65,38 @@ CATEGORY_ALIASES = {
     "finance_banking": "mobile_banking"
 }
 
+# 内置最小可用核心品类兜底 (保证在 JSON 文件缺失或损坏时 100% 不发生 KeyError)
+BUILTIN_MINIMAL_CATEGORIES = {
+    "general_custom": {
+        "id": 40,
+        "key": "general_custom",
+        "name": "其他 / 通用业务类别 (第40类)",
+        "raw_name": "通用业务类别",
+        "law_ref": "《中华人民共和国个人信息保护法》第六条（最小必要原则）",
+        "basic_service": "面向移动终端的专用业务服务",
+        "necessary_info": "根据具体申报业务功能，遵循最小必要原则",
+        "no_info_needed": False,
+        "legitimate_apis": ["android.app.DownloadManager -> enqueue", "android.content.ClipboardManager -> getPrimaryClip"],
+        "legitimate_scenarios": "根据开发者申报的具体业务功能，结合用户主观诉求与透明告知原则综合研判。",
+        "strict_redlines": "严禁在《隐私政策》明示授权前执行任何后台静默收集；严禁开屏阶段注册加速度传感器用于摇一摇广告；严禁过度收集位置。",
+        "sample_description": "面向移动终端的专用业务服务应用程序。"
+    },
+    "web_browser": {
+        "id": 32,
+        "key": "web_browser",
+        "name": "浏览器类 (第32类)",
+        "raw_name": "浏览器类",
+        "law_ref": "国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》第3条第(32)项",
+        "basic_service": "浏览互联网信息资源",
+        "necessary_info": "无须个人信息，即可使用基本功能服务。",
+        "no_info_needed": True,
+        "legitimate_apis": ["android.app.DownloadManager -> enqueue", "android.content.ClipboardManager -> getPrimaryClip"],
+        "legitimate_scenarios": "浏览器类的核心服务为“浏览互联网信息资源”，文件网络下载属于核心业务链路；前台交互触发式剪贴板读取用于快速搜索/导航，具有合理业务关联。",
+        "strict_redlines": "法定无须个人信息即可使用基本功能，严禁未授权暗中收集敏感数据；严禁利用传感器监听开屏广告摇一摇；严禁索取通讯录。",
+        "sample_description": "极简轻量级移动网页浏览器，申报业务功能为网页浏览与网络文件下载，不构成无追踪之事实保证。"
+    }
+}
+
 def _load_gb_categories() -> Dict[str, Any]:
     """
     加载国家网信办、工业和信息化部、公安部、国家市场监督管理总局四部委联合发布的
@@ -76,15 +108,21 @@ def _load_gb_categories() -> Dict[str, Any]:
         os.path.join(os.getcwd(), "gb_categories_39.json"),
         "gb_categories_39.json"
     ]
-    data = {}
+    data = dict(BUILTIN_MINIMAL_CATEGORIES)
+    loaded_from_disk = False
     for p in candidates:
         if os.path.exists(p):
             try:
                 with open(p, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                    disk_data = json.load(f)
+                    if isinstance(disk_data, dict) and len(disk_data) > 0:
+                        data.update(disk_data)
+                        loaded_from_disk = True
                 break
             except Exception as e:
                 print(f"[!] 读取 {p} 失败: {e}")
+    if not loaded_from_disk:
+        print("[!] 警告: gb_categories_39.json 未能加载，已自动启用内置最小核心品类知识库保障系统平稳运行")
 
     # 注入别名以保证 100% 历史兼容
     for old_k, new_k in CATEGORY_ALIASES.items():
@@ -208,7 +246,7 @@ def fetch_remote_models(provider: str, api_key: str, base_url: str = "") -> Dict
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "AppGuard/1.09",
+        "User-Agent": "AppGuard/1.10",
         "Accept": "application/json"
     }
 
@@ -418,11 +456,11 @@ def classify_app_and_describe(
             req = urllib.request.Request(
                 f"{base_url}/chat/completions",
                 data=json.dumps(req_payload).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}",
-                    "User-Agent": "AppGuard/1.09"
-                },
+               headers={
+                   "Content-Type": "application/json",
+                   "Authorization": f"Bearer {api_key}",
+                    "User-Agent": "AppGuard/1.10"
+               },
                 method="POST"
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -442,54 +480,53 @@ def classify_app_and_describe(
                             "law_ref": cat_info["law_ref"],
                             "description": data.get("description") or cat_info["sample_description"],
                             "confidence": float(data.get("confidence", 0.95)),
+                            "evaluation_mode": "LLM_SEMANTIC",
+                            "degrade_reason": None,
                             "reason": data.get("reason", "大模型深度语义研判"),
                             "source": "llm",
                             "model": model_name
                         }
-        except Exception:
-            pass
+        except Exception as e:
+            degrade_reason = f"大模型在线请求异常 ({type(e).__name__}): {str(e)[:80]}"
+    else:
+        degrade_reason = "未配置大模型 API Key，已自动平滑启用内置离线确定性专家规则引擎"
 
     # 2. 本地离线确定性领域专家引擎 (0ms 兜底保障)
     inferred_cat = infer_app_category(target_pkg, target_name)
-    cat_info = GB_APP_CATEGORIES.get(inferred_cat, GB_APP_CATEGORIES["general_custom"])
+    cat_info = GB_APP_CATEGORIES.get(inferred_cat) or GB_APP_CATEGORIES.get("general_custom") or BUILTIN_MINIMAL_CATEGORIES["general_custom"]
 
     pkg_lower = target_pkg.lower()
     name_lower = target_name.lower()
     if "via" in pkg_lower or "via" in name_lower or inferred_cat == "web_browser":
-        desc = "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
-        reason = "命中轻量浏览器核心特征"
-        confidence = 0.98
+        desc = "申报用途为极简轻量级移动网页浏览器，假定核心业务为网页浏览与下载，以此作为最小必要性合规比对基准，不构成免除追踪事实之法律认定。"
+        reason = "命中轻量浏览器核心特征（确定性规则推导）"
     elif "xq" in pkg_lower or "象棋" in name_lower or "chess" in pkg_lower or inferred_cat == "online_gaming":
-        desc = "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，核心链路围绕游戏对弈，无需读取通讯录与麦克风。"
-        reason = "命中休闲棋牌对战游戏特征"
-        confidence = 0.98
+        desc = "申报用途为休闲棋牌策略对战类手机游戏，假定核心链路围绕游戏对弈，审计基准假定其主营业务不涉及敏感通信录与录音。"
+        reason = "命中休闲棋牌对战游戏特征（确定性规则推导）"
     elif "cainiao" in pkg_lower or "菜鸟" in name_lower or inferred_cat == "postal_delivery":
-        desc = "综合型移动电商与智慧物流平台，提供快递包裹多端追踪、就近驿站自提通知及寄件履约服务。"
-        reason = "命中电商物流查件与自提服务特征"
-        confidence = 0.96
-    elif "pinduoduo" in pkg_lower or "拼多多" in name_lower:
-        desc = "综合型移动电商购物平台，提供商品选购、拼单优惠、在线支付与订单物流追踪功能，不含非明示剪贴板跨域追踪。"
-        reason = "命中综合电商与拼单选购特征"
-        confidence = 0.95
+        desc = "申报用途为综合型移动电商与智慧物流平台，假定核心功能为快递包裹多端追踪、就近驿站自提通知及寄件履约服务。"
+        reason = "命中电商物流查件与自提服务特征（确定性规则推导）"
+    elif "pinduoduo" in pkg_lower or "拼多多" in name_lower or inferred_cat == "online_shopping":
+        desc = "申报用途为综合型移动电商购物平台，假定核心功能为商品选购、拼单优惠、在线支付与订单物流追踪，以此评估最小必要权限。"
+        reason = "命中综合电商与拼单选购特征（确定性规则推导）"
     elif "alipay" in pkg_lower or "支付宝" in name_lower or inferred_cat == "online_payment":
-        desc = "移动支付与综合数字金融生活平台，用于安全转账、扫码收付款、政务民生及生活缴费，需合规生物认证与交易安全风控。"
-        reason = "命中移动支付与金融理财特征"
-        confidence = 0.99
-    elif "musically" in pkg_lower or "tiktok" in pkg_lower or "douyin" in pkg_lower or "抖音" in name_lower:
-        desc = "短视频创作与社交分享平台，提供拍摄录制、滤镜特效渲染、即时互动与推荐播放服务，需合规调用相机与麦克风。"
-        reason = "命中音视频拍摄与特效创作特征"
-        confidence = 0.97
+        desc = "申报用途为移动支付与综合数字金融生活平台，假定用于安全转账、扫码收付款及生活缴费，需合规生物认证与交易安全风控。"
+        reason = "命中移动支付与金融理财特征（确定性规则推导）"
+    elif "musically" in pkg_lower or "tiktok" in pkg_lower or "douyin" in pkg_lower or "抖音" in name_lower or inferred_cat == "short_video":
+        desc = "申报用途为短视频创作与社交分享平台，假定提供拍摄录制、滤镜特效渲染与播放服务，需合规动态调用相机与麦克风。"
+        reason = "命中音视频拍摄与特效创作特征（确定性规则推导）"
     else:
         desc = cat_info.get("sample_description", f"{target_name} 专用移动业务服务应用程序。")
-        reason = f"基于包名与应用名称语义规则匹配至【{cat_info['name']}】"
-        confidence = 0.91
+        reason = f"基于包名与应用名称启发式规则推导至【{cat_info['name']}】"
 
     return {
         "category": inferred_cat,
         "category_name": cat_info["name"],
         "law_ref": cat_info["law_ref"],
         "description": desc,
-        "confidence": confidence,
+        "confidence": None,
+        "evaluation_mode": "DETERMINISTIC_RULES",
+        "degrade_reason": degrade_reason,
         "reason": reason,
         "source": "expert_engine",
         "model": "内置专家引擎 (四部委 39 类国标图谱)"
@@ -523,7 +560,7 @@ class ComplianceAgent:
         # 确定品类与业务用途
         if not app_category or app_category not in GB_APP_CATEGORIES:
             app_category = infer_app_category(pkg, app_name)
-        cat_info = GB_APP_CATEGORIES.get(app_category, GB_APP_CATEGORIES["general_custom"])
+        cat_info = GB_APP_CATEGORIES.get(app_category) or GB_APP_CATEGORIES.get("general_custom") or BUILTIN_MINIMAL_CATEGORIES["general_custom"]
 
         if not app_description.strip():
             app_description = cat_info.get("sample_description", "通用移动业务应用程序。")
@@ -534,14 +571,19 @@ class ComplianceAgent:
         mode = cfg.get("mode", "auto")
 
         llm_result = None
+        degrade_reason = None
         if api_key and mode != "offline_only":
-            llm_result = self._call_llm_reasoning(audit_data, cat_info, app_category, app_description, cfg)
+            llm_result, llm_err = self._call_llm_reasoning(audit_data, cat_info, app_category, app_description, cfg)
+            if not llm_result:
+                degrade_reason = f"大模型在线请求异常: {llm_err}，已平滑降级至内置离线确定性专家规则引擎"
+        else:
+            degrade_reason = "未配置大模型 API Key 或处于离线模式，已启用内置离线确定性专家规则引擎"
 
         # 若未配置大模型，或大模型调用失败，无缝无损回退到内置专家引擎
         if llm_result:
             return llm_result
         else:
-            return self._expert_rule_reasoning(audit_data, cat_info, app_category, app_description)
+            return self._expert_rule_reasoning(audit_data, cat_info, app_category, app_description, degrade_reason=degrade_reason)
 
     def _call_llm_reasoning(
         self,
@@ -550,7 +592,7 @@ class ComplianceAgent:
         app_category: str,
         app_description: str,
         cfg: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """调用大模型执行深度场景研判与代码追溯"""
         p_key = cfg.get("provider", "deepseek")
         p_meta = DEFAULT_PROVIDERS.get(p_key, DEFAULT_PROVIDERS["custom"])
@@ -559,7 +601,7 @@ class ComplianceAgent:
         api_key = cfg.get("api_key", "")
 
         if not base_url or not model_name or not api_key:
-            return None
+            return None, "模型配置不全 (缺少 base_url / model_name / api_key)"
 
         # 压缩提取机检事实数据，供 Agent 严谨推理
         baseline_score = audit_data.get("compliance_score", 100)
@@ -676,7 +718,7 @@ class ComplianceAgent:
                     score_penalty = max(0, -diff)
 
                     # 组装标准 Agent 输出对象
-                    return {
+                    result_dict = {
                         "is_agent_enabled": True,
                         "agent_provider": f"{p_meta['name']} ({model_name})",
                         "evaluation_mode": "LLM_SEMANTIC",
@@ -697,22 +739,25 @@ class ComplianceAgent:
                         "detailed_traces": eval_items,
                         "legal_disclaimer": "【存证声明与责任边界】：本裁决书意见严格基于申报的主营业务品类与用途陈述。若实际应用运行中隐匿其它无关业务，或申报品类与实际服务严重背离，本合规豁免意见与分值修正将自动失效，不构成任何行政监管免责依据。",
                         "regulatory_citations": [
-                            "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
+                            "《中华人民共和国个人信息保护法》第六条（最小必要原则）、第十七条（告知义务）",
                             cat_info["law_ref"],
                             "工信部信管函〔2023〕26号 · 移动应用软件最小必要个人信息收集指引"
                         ],
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
                     }
+                    return result_dict, None
         except Exception as e:
             print(f"[!] Agent 调用大模型 API 异常，自动无损转为离线内置专家知识图谱: {e}")
-            return None
+            return None, f"{type(e).__name__}: {str(e)[:100]}"
+        return None, "未能从大模型返回中解析到有效 JSON 载荷"
 
     def _expert_rule_reasoning(
         self,
         audit_data: Dict[str, Any],
         cat_info: Dict[str, Any],
         app_category: str,
-        app_description: str
+        app_description: str,
+        degrade_reason: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         离线内置领域合规专家推理引擎 (Deterministic Expert Heuristic Engine)
@@ -754,8 +799,12 @@ class ComplianceAgent:
             code_patch = r.get("remediation_code", "")
 
             # 1. 下载管理器规则 (DownloadManager)
+            legit_apis = cat_info.get("legitimate_apis", [])
             if "DOWNLOAD" in rule_id or "DownloadManager" in t_api:
-                if app_category in ["web_browser", "browser_utility", "app_store", "online_gaming", "mobile_game"]:
+                has_download_legit = any("DownloadManager" in a for a in legit_apis) or app_category in [
+                    "web_browser", "browser_utility", "app_store", "online_gaming", "mobile_game"
+                ]
+                if has_download_legit:
                     business_necessity = "ESSENTIAL"
                     verdict_action = "场景合理·全额豁免扣分 (+5分)"
                     adjusted_points = 0
@@ -764,7 +813,7 @@ class ComplianceAgent:
                     root_cause_explanation = (
                         f"【业务场景因果追溯】调用发生在 [{c_class}::{c_method}]。"
                         f"该应用属于【{cat_info['name']}】，文件网络下载系核心主营业务功能支撑。"
-                        f"基于四部委《规定》第32条，调用系统原生 DownloadManager 不属于违规诱导下载，给予场景化全额豁免。"
+                        f"基于{cat_info['law_ref']}，调用系统原生 DownloadManager 不属于违规诱导下载，给予场景化全额豁免。"
                     )
                     code_patch = (
                         "// [合规建议] DownloadManager 属于浏览器必备能力，保留调用，但建议在触发下载前向用户展示标准确认弹窗：\n"
@@ -777,11 +826,18 @@ class ComplianceAgent:
                 else:
                     business_necessity = "DEFECTIVE"
                     verdict_action = "部分整改建议"
-                    root_cause_explanation = f"调用发生在 [{c_class}::{c_method}]，当前应用非下载工具，需核查是否存在后台静默推装行为。"
+                    root_cause_explanation = (
+                        f"调用发生在 [{c_class}::{c_method}]，当前申报品类【{cat_info['name']}】法定必要信息与业务场景未包含静默下载通道，"
+                        f"需核查是否存在后台静默推装行为。"
+                    )
 
             # 2. 剪贴板规则 (Clipboard)
             elif "CLIPBOARD" in rule_id or "Clipboard" in t_api:
-                if app_category in ["web_browser", "browser_utility", "instant_messaging", "im_social", "online_shopping", "ecommerce_life", "utility_tools", "input_method"]:
+                has_clipboard_legit = any("ClipboardManager" in a for a in legit_apis) or app_category in [
+                    "web_browser", "browser_utility", "instant_messaging", "im_social",
+                    "online_shopping", "ecommerce_life", "utility_tools", "input_method"
+                ]
+                if has_clipboard_legit:
                     business_necessity = "DEFECTIVE"
                     verdict_action = "降权优化·扣分减半 (+2分)"
                     adjusted_points = max(1, base_points // 2)
@@ -789,8 +845,8 @@ class ComplianceAgent:
                     has_exemption = True
                     root_cause_explanation = (
                         f"【业务场景因果追溯】调用发生在 [{c_class}::{c_method}]。"
-                        f"应用在主界面加载时尝试获取剪贴板内容，旨在实现‘网址/口令快捷识别’提升交互体验。"
-                        f"但根据工信部 26 号文要求，应用严禁在无用户主观意图时静默嗅探剪贴板，应在用户点击搜索框或授权后读取。"
+                        f"应用在主界面加载时尝试获取剪贴板内容，旨在支撑【{cat_info['name']}】的口令识别、网址导航或快捷粘贴交互。"
+                        f"但根据《个人信息保护法》第六条与工信部信管函〔2023〕26号要求，应用严禁在无用户主观意图时静默嗅探剪贴板，应在用户点击搜索框或授权后读取。"
                     )
                     code_patch = (
                         "// [合规优化补丁] 改造为‘用户交互触发式剪贴板读取’，避免冷启动静默调用：\n"
@@ -807,7 +863,10 @@ class ComplianceAgent:
                     score_penalty += 2
                     adjusted_points = base_points + 2
                     has_severe = True
-                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]，该品类完全无需常驻读取剪贴板，涉嫌跨域归因窃取隐私，加重扣除 2 分。"
+                    root_cause_explanation = (
+                        f"调用位于 [{c_class}::{c_method}]。申报品类【{cat_info['name']}】法定业务无常驻读取剪贴板必要，"
+                        f"依据{cat_info['law_ref']}涉嫌跨域画像与归因窃取隐私，加重扣除 2 分。"
+                    )
 
             # 3. 摇一摇传感器规则 (Shake Sensor)
             elif "SHAKE" in rule_id or "SensorManager" in t_api:
@@ -818,14 +877,18 @@ class ComplianceAgent:
                 has_severe = True
                 root_cause_explanation = (
                     f"【业务场景因果追溯】调用发生在 [{c_class}::{c_method}]，经责任穿透属于【{culprit}】。"
-                    f"注册加速度计/陀螺仪传感器用于开屏广告交互，不属于该应用业务的合法必要组成部分，"
+                    f"注册加速度计/陀螺仪传感器用于开屏广告交互，不属于【{cat_info['name']}】的合法必要业务组成部分，"
                     f"严重触犯工信部信管函〔2023〕26号第十条与 TAF-077 摇一摇防误触规范。"
                 )
                 code_patch = r.get("remediation_code", "")
 
             # 4. 分区存储逃逸 (Storage Directory)
             elif "STORAGE" in rule_id or "getExternalStorageDirectory" in t_api:
-                if app_category in ["web_browser", "browser_utility", "photography_beautification", "camera_media", "email_cloud_storage"]:
+                has_storage_legit = any("Storage" in a or "getExternalStorageDirectory" in a for a in legit_apis) or app_category in [
+                    "web_browser", "browser_utility", "photography_beautification",
+                    "camera_media", "email_cloud_storage", "utility_tools"
+                ]
+                if has_storage_legit:
                     business_necessity = "DEFECTIVE"
                     verdict_action = "兼容性保留·架构整改建议"
                     adjusted_points = max(2, base_points - 2)
@@ -833,7 +896,7 @@ class ComplianceAgent:
                     has_exemption = True
                     root_cause_explanation = (
                         f"【业务场景因果追溯】调用发生在 [{c_class}::{c_method}] (共 {item.get('count', 1)} 处)。"
-                        f"浏览器因历史兼容性需要向外部存储写入下载文件，但直接调用 getExternalStorageDirectory 已在 Android 11+ 被废弃，"
+                        f"【{cat_info['name']}】因历史兼容性需要向外部存储写入或导出文件，但直接调用 getExternalStorageDirectory 已在 Android 11+ 被废弃，"
                         f"容易引发工信部‘私自读取相册全盘文件’通报风险，必须迁移为标准 SAF 存储访问框架。"
                     )
                     code_patch = (
@@ -848,24 +911,62 @@ class ComplianceAgent:
                     score_penalty += 2
                     adjusted_points = base_points + 2
                     has_severe = True
-                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]，单机轻量应用全盘检索文件具有明显越权特征。"
+                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]，申报品类【{cat_info['name']}】全盘检索文件具有明显越权特征。"
 
-            # 5. 地理位置规则 (Location)
+            # 5. 地理位置规则 (Location) - 严格遵循四部委法定必要个人信息与红线标准
             elif "LOCATION" in rule_id or "Location" in t_api:
-                if app_category in ["map_navigation", "navigation_travel", "ride_hailing", "food_delivery", "postal_delivery", "traffic_ticketing", "hotel_booking", "local_life", "vehicle_service", "online_payment", "mobile_banking"]:
-                    business_necessity = "ESSENTIAL"
-                    verdict_action = "主营功能必需·全额豁免扣分 (+5分)"
-                    adjusted_points = 0
-                    score_bonus += base_points
-                    has_exemption = True
-                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]。该应用为出行或电商，定位属于核心功能，符合四部委 39 类标准第 1 条，予以豁免。"
-                else:
+                # 判定分支 A: 法定 13 类无须个人信息品类 (严格禁绝定位)
+                if cat_info.get("no_info_needed"):
                     business_necessity = "UNNECESSARY"
-                    verdict_action = "越权超范围定位·加重扣罚 (-3分)"
+                    verdict_action = "法定免信息品类·违规定位加重扣罚 (-3分)"
                     score_penalty += 3
                     adjusted_points = base_points + 3
                     has_severe = True
-                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]。当前应用类别非出行服务，无需常驻定位，涉嫌过度收集行踪轨迹。"
+                    root_cause_explanation = (
+                        f"调用位于 [{c_class}::{c_method}]。依据{cat_info['law_ref']}，"
+                        f"【{cat_info['name']}】法定属于无须个人信息即可使用基本功能服务的品类，"
+                        f"暗中或强制索取高精度经纬度行踪轨迹属于严重超范围越权收集，加重扣除 3 分。"
+                    )
+                # 判定分支 B: 金融支付与银行类 (法定必要信息明确不包含位置信息，严禁以风控为由越权收集)
+                elif app_category in ["online_payment", "mobile_banking", "finance_banking", "investment_finance"]:
+                    business_necessity = "UNNECESSARY"
+                    verdict_action = "超范围索取定位·加重扣罚 (-3分)"
+                    score_penalty += 3
+                    adjusted_points = base_points + 3
+                    has_severe = True
+                    root_cause_explanation = (
+                        f"调用位于 [{c_class}::{c_method}]。依据{cat_info['law_ref']}，"
+                        f"【{cat_info['name']}】法定必要个人信息清单严格限定为手机号、证件及银行卡等要素，法定基准不包含地理位置；"
+                        f"将风控或安全作为借口过度索取精准行踪轨迹违反《个人信息保护法》第六条最小必要原则，加重扣除 3 分。"
+                    )
+                # 判定分支 C: 法定必要信息包含位置或正当业务强支撑品类
+                else:
+                    has_location_legit = any("LocationManager" in a for a in legit_apis) or app_category in [
+                        "map_navigation", "navigation_travel", "ride_hailing", "food_delivery",
+                        "postal_delivery", "traffic_ticketing", "hotel_booking", "local_life",
+                        "vehicle_service", "travel_service"
+                    ]
+                    if has_location_legit:
+                        business_necessity = "ESSENTIAL"
+                        verdict_action = "主营功能必需·全额豁免扣分 (+5分)"
+                        adjusted_points = 0
+                        score_bonus += base_points
+                        has_exemption = True
+                        root_cause_explanation = (
+                            f"【业务场景因果追溯】调用位于 [{c_class}::{c_method}]。"
+                            f"该应用申报品类为【{cat_info['name']}】，调用定位能力属于其主营业务场景支撑。"
+                            f"依据{cat_info['law_ref']}，其必要个人信息包含位置信息或与核心服务强相关，符合监管指引，予以全额豁免。"
+                        )
+                    else:
+                        business_necessity = "UNNECESSARY"
+                        verdict_action = "越权超范围定位·加重扣罚 (-3分)"
+                        score_penalty += 3
+                        adjusted_points = base_points + 3
+                        has_severe = True
+                        root_cause_explanation = (
+                            f"调用位于 [{c_class}::{c_method}]。申报品类【{cat_info['name']}】法定必要信息不含位置信息，"
+                            f"依据{cat_info['law_ref']}，无需常驻定位，涉嫌过度收集行踪轨迹，加重扣除 3 分。"
+                        )
 
             # 6. 其余规则通用回退
             else:
@@ -901,7 +1002,7 @@ class ComplianceAgent:
             title = f"经 Agent 场景上下文智能裁决：主营功能合理，但部分调用时机与存储规范存在工程实现瑕疵，建议定向补丁重构"
 
         assessment = (
-            f"本审计由【AppGuard 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第五条“最小必要原则”"
+            f"本审计由【AppGuard 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第六条“最小必要原则”"
             f"及国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》对目标应用 [{audit_data.get('app_name')}] 执行深度场景因果研判。\n"
             f"【业务画像对照】：开发者申报该应用为【{cat_info['name']}】，法定必要信息基线为“{cat_info['law_ref']}”。\n"
             f"【裁决穿透分析】：传统静态规则引擎基线参考分为 {baseline_score} 分，系未经业务场景滤波的机械扣分。"
@@ -916,6 +1017,7 @@ class ComplianceAgent:
             "agent_provider": "AppGuard-Expert-Agent (内置离线专家知识图谱)",
             "evaluation_mode": "DETERMINISTIC_RULES",
             "confidence_percent": None,
+            "degrade_reason": degrade_reason or "未配置大模型 API Key 或处于离线模式，已启用内置离线确定性专家规则引擎",
             "confidence_desc": "四部委 39 类国标确定性规则推导（非统计概率）",
             "claim_mode": "申报主营业务品类（开发者自述/测试指定）",
             "app_category_key": app_category,
@@ -932,7 +1034,7 @@ class ComplianceAgent:
             "detailed_traces": detailed_traces,
             "legal_disclaimer": "【存证声明与责任边界】：本裁决书意见严格基于申报的主营业务品类与用途陈述。若实际应用运行中隐匿其它无关业务，或申报品类与实际服务严重背离，本合规豁免意见与分值修正将自动失效，不构成任何行政监管免责依据。",
             "regulatory_citations": [
-                "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
+                "《中华人民共和国个人信息保护法》第六条（最小必要原则）、第十七条（告知义务）",
                 cat_info["law_ref"],
                 "工信部信管函〔2023〕26号 · 移动互联网应用程序个人信息保护管理若干规定",
                 "国家标准 GB/T 35273-2020《信息安全技术 个人信息安全规范》第 5.4 条（最小化要求）"

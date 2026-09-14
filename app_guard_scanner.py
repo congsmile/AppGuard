@@ -836,7 +836,7 @@ def run_audit(apk_path):
 
     start_time = time.time()
     print(f"\n{'='*70}")
-    print(f"[*] 启动移动应用隐私合规自动化审计引擎 (AppGuard Audit Engine v1.09)")
+    print(f"[*] 启动移动应用隐私合规自动化审计引擎 (AppGuard Audit Engine v1.10)")
     print(f"[*] 四维加权分级评估模型 (WCI) · 12 大工信部专项红线与责任穿透")
     print(f"[*] 目标安装包: {os.path.abspath(apk_path)}")
     print(f"{'='*70}\n")

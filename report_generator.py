@@ -18,6 +18,7 @@ def generate_report(data, output_dir="outputs"):
     filepath = os.path.join(output_dir, filename)
 
     app_name = data.get("app_name", pkg)
+    demo_badge = ' <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.35);font-weight:700;vertical-align:middle;margin-left:6px;">[演练预置样本 · 供功能演示]</span>' if data.get("is_demo_sample") else ""
     score = data.get("compliance_score", 85)
     risk_level = data.get("risk_level", "中风险")
     target_sdk = data.get("target_sdk", "35")
@@ -729,7 +730,7 @@ def generate_report(data, output_dir="outputs"):
         <div class="section-card overview-grid">
             <div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <h1 style="margin:0;font-size:24px;font-weight:800;">{app_name}</h1>
+                    <h1 style="margin:0;font-size:24px;font-weight:800;">{app_name}{demo_badge}</h1>
                     <code style="color:#38bdf8;font-size:13px;">{pkg}</code>
                 </div>
                 <div class="meta-list">
@@ -785,7 +786,7 @@ def generate_report(data, output_dir="outputs"):
         {findings_html if findings else '<div class="section-card" style="text-align:center;color:#10b981;font-weight:bold;">恭喜！未在目标应用中检出已知工信部红线违规调用。</div>'}
 
         <div class="footer">
-            <div>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · AppGuard 合规审计引擎 v1.09</div>
+            <div>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · AppGuard 合规审计引擎 v1.10</div>
             <div>中国国际大学生创新大赛 · 移动互联网隐私合规端云协同平台</div>
         </div>
     </div>
