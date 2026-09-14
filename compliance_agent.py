@@ -208,7 +208,7 @@ def fetch_remote_models(provider: str, api_key: str, base_url: str = "") -> Dict
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "AppGuard/1.08",
+        "User-Agent": "AppGuard/1.09",
         "Accept": "application/json"
     }
 
@@ -421,7 +421,7 @@ def classify_app_and_describe(
                 headers={
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {api_key}",
-                    "User-Agent": "AppGuard/1.08"
+                    "User-Agent": "AppGuard/1.09"
                 },
                 method="POST"
             )
