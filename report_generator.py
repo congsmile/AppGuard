@@ -6,7 +6,7 @@ import compliance_agent
 
 def generate_report(data, output_dir="outputs"):
     """
-    生成 AppGuard 移动应用隐私合规高保真存证报告 (HTML)
+    生成 AppGuard-AI 移动应用隐私合规高保真存证报告 (HTML)
     支持: 静态代码 (Static) / 动态硬件沙箱 (Dynamic) / 动静双轨交叉存证 (Hybrid)
     包含: 第三方 SDK 责任穿透大盘 + 工信部合规修复代码补丁库
     """
@@ -121,7 +121,7 @@ def generate_report(data, output_dir="outputs"):
     # 构建 Agent 场景化最小必要性智能裁决卡片 HTML
     agent_verdict_html = ""
     if agent_analysis:
-        p_name = agent_analysis.get("agent_provider", "AppGuard-Expert-Agent")
+        p_name = agent_analysis.get("agent_provider", "AppGuard-AI-Expert-Agent")
         c_name = agent_analysis.get("app_category_name", "通用业务类")
         l_ref = agent_analysis.get("statutory_law_ref", "四部委《39类App必要个人信息规定》")
         desc_text = agent_analysis.get("app_description", "")
@@ -472,7 +472,7 @@ def generate_report(data, output_dir="outputs"):
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>AppGuard 移动应用隐私合规深度体检报告 - {app_name}</title>
+    <title>AppGuard-AI 移动应用隐私合规深度体检报告 - {app_name}</title>
     <style>
         :root {{
             --bg: #090a0f;
@@ -710,7 +710,7 @@ def generate_report(data, output_dir="outputs"):
             <div class="brand-title">
                 <div class="brand-icon">🛡️</div>
                 <div>
-                    <h2 style="margin:0;font-size:18px;">AppGuard · 移动应用隐私合规深度存证体检报告</h2>
+                    <h2 style="margin:0;font-size:18px;">AppGuard-AI · 基于国标场景先验与合规大模型的移动应用端云双轨智审报告</h2>
                     <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">
                         《中华人民共和国个人信息保护法》/ 工业和信息化部信管函〔2023〕26号合规技术规范
                     </div>
@@ -786,8 +786,8 @@ def generate_report(data, output_dir="outputs"):
         {findings_html if findings else '<div class="section-card" style="text-align:center;color:#10b981;font-weight:bold;">恭喜！未在目标应用中检出已知工信部红线违规调用。</div>'}
 
         <div class="footer">
-            <div>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · AppGuard 合规审计引擎 v1.10</div>
-            <div>中国国际大学生创新大赛 · 移动互联网隐私合规端云协同平台</div>
+            <div>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · AppGuard-AI 智审引擎 v1.10</div>
+            <div>中国国际大学生创新大赛 · 基于国标场景先验与合规大模型的移动应用端云双轨智审平台</div>
         </div>
     </div>
 </body>

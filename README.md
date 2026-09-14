@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="AppGuard_Logo.png" width="110" alt="AppGuard Logo" />
-  <h1>AppGuard</h1>
-  <p><strong>移动互联网应用程序隐私合规审计与端云协同分析系统 (v1.10)</strong></p>
+  <img src="AppGuard_Logo.png" width="110" alt="AppGuard-AI Logo" />
+  <h1>AppGuard-AI</h1>
+  <p><strong>基于国标场景先验与合规大模型的移动应用端云双轨智审平台 (v1.10)</strong></p>
   <p>
     <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-green.svg" alt="Python"></a>
@@ -12,9 +12,9 @@
   </p>
 </div>
 
-**AppGuard (v1.10)** 是一套面向移动互联网应用程序（Android APP）的高性能、动静双轨隐私合规审计与端云协同自动化分析系统。系统深度对标《中华人民共和国个人信息保护法》、工业和信息化部《关于进一步提升移动互联网应用服务能力的通知》（**工信部信管函〔2023〕26号**）、国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》（**39类国标**）及电信终端产业协会 **T/TAF 077.1-2022** 防误触规范。
+**AppGuard-AI (v1.10)** 是一套面向移动互联网应用程序（Android APP）的高性能、动静双轨隐私合规智审与端云协同自动化分析系统。系统深度对标《中华人民共和国个人信息保护法》、工业和信息化部《关于进一步提升移动互联网应用服务能力的通知》（**工信部信管函〔2023〕26号**）、国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》（**39类国标**）及电信终端产业协会 **T/TAF 077.1-2022** 防误触规范。
 
-针对传统合规工具面临的**“机械扫描 API 存在性导致大量误报、动态沙箱依赖 Root 易被对抗破防、违规取证与主营业务场景割裂”**等行业治理痛点，AppGuard 创新融合 **场景化合规审计智能体 (Compliance Agent)** 与 **Android 16 免 Root 硬件探针动态沙箱**，实现从“代码存在性检查”向“业务因果链溯源与精准合规裁决”的跨越式升级。
+针对传统合规工具面临的**“机械扫描 API 存在性导致大量误报、动态沙箱依赖 Root 易被对抗破防、违规取证与主营业务场景割裂”**等行业治理痛点，AppGuard-AI 创新融合 **场景化合规审计智能体 (Compliance Agent)** 与 **Android 16 免 Root 硬件探针动态沙箱**，实现从“代码存在性检查”向“业务因果链溯源与精准合规裁决”的跨越式升级。
 
 ---
 
@@ -23,7 +23,7 @@
 ### 🤖 1. 合规审计智能体 (Compliance Agent · AI+ Context 场景化因果研判)
 传统静态扫描工具最大的痼疾在于“机械扫描 API 签名匹配”。例如，浏览器具备下载文件能力（调用系统 `DownloadManager`）或在前台由用户主动点击搜索框粘贴网址（访问剪贴板），在传统扫描器中往往被一刀切扣分为“诱导静默下载”或“违规窃取剪贴板”。
 
-AppGuard v1.10 引入 **AI+ 合规审计智能体**，彻底解决机械误报问题：
+AppGuard-AI v1.10 引入 **AI+ 合规审计智能体**，彻底解决机械误报问题：
 - **国家四部委 39 类国标场景基准**：内置网信办、工信部、公安部、市监局联合发布的《常见类型移动互联网应用程序必要个人信息范围规定》全量 39 类应用规范库，依据应用法定业务范围进行基线约束。
 - **DEX 字节码调用位置深层反向因果溯源**：深入多 DEX 底层指令与跨组件交叉引用（XRef），反向提取 `caller_class::caller_method -> target_api` 物理调用点，穿透识别责任归属主体（应用自身主营模块 vs 第三方商业聚合 SDK）。
 - **场景化裁决与合规豁免机制**：
@@ -90,13 +90,13 @@ AppGuard v1.10 引入 **AI+ 合规审计智能体**，彻底解决机械误报�
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   AppGuard Web Console (Apple Fluid Glass UI · v1.10)                   │
+│                  AppGuard-AI Web Console (Apple Fluid Glass UI · v1.10)                │
 │   [Channel A: APK Drag & Drop]              [Channel B: Real-Device ADB Probe]         │
 │   [Agent Config: DeepSeek / Kimi / GLM]     [One-Click 39-Category Auto-Inference]    │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │ REST API / JSON Streams
 ┌───────────────────────────────────────────▼────────────────────────────────────────────┐
-│                    AppGuard Core Dispatcher & Broker (server.py)                       │
+│                   AppGuard-AI Core Dispatcher & Broker (server.py)                     │
 │   - Real Device Topology Auto-Detection     - Channel A/B Pipeline Orchestration       │
 │   - Targeted Payload Extraction Streamer    - Dual-Track Arbitration Engine            │
 └───────────────────┬────────────────────────────────┬───────────────────────────────────┘
@@ -158,8 +158,8 @@ AppGuard v1.10 引入 **AI+ 合规审计智能体**，彻底解决机械误报�
 
 ### 2. 克隆与安装依赖
 ```bash
-git clone https://github.com/congsmile/AppGuard.git
-cd AppGuard
+git clone https://github.com/congsmile/AppGuard-AI.git
+cd AppGuard-AI
 
 pip install -r requirements.txt
 ```
@@ -187,7 +187,7 @@ python test_audit_engine.py
 ## 📂 仓库目录结构 (Repository Structure)
 
 ```text
-AppGuard/
+AppGuard-AI/
 ├── app_guard_scanner.py     # Dalvik 字节码逆向分析引擎与 12 大工信部合规红线规则库
 ├── compliance_agent.py      # 四部委 39 类国标场景化合规审计智能体 (Agent 双引擎推理)
 ├── gb_categories_39.json    # 国家四部委 39 类法定必要个人信息标准与合规 API/红线知识图谱

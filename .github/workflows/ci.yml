@@ -1,4 +1,4 @@
-name: AppGuard CI
+name: AppGuard-AI CI
 
 on:
   push:

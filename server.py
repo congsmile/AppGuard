@@ -1212,5 +1212,5 @@ def api_agent_analyze():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    print(f"[*] AppGuard Web 控制台已在 http://127.0.0.1:{port} 启动")
+    print(f"[*] AppGuard-AI Web 控制台已在 http://127.0.0.1:{port} 启动")
     app.run(host="0.0.0.0", port=port, debug=False)

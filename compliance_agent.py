@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-AppGuard 场景化合规审计智能体引擎 (Compliance Agent)
+AppGuard-AI 场景化合规智审智能体引擎 (Compliance Agent)
 基于大语言模型与国家网信办/工信部《常见类型移动互联网应用程序必要个人信息范围规定》(39类国标)
 核心特性:
 1. 场景上下文最小必要性研判 (Context-Aware Principle of Data Minimization)
@@ -246,7 +246,7 @@ def fetch_remote_models(provider: str, api_key: str, base_url: str = "") -> Dict
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "AppGuard/1.10",
+        "User-Agent": "AppGuard-AI/1.10",
         "Accept": "application/json"
     }
 
@@ -459,7 +459,7 @@ def classify_app_and_describe(
                headers={
                    "Content-Type": "application/json",
                    "Authorization": f"Bearer {api_key}",
-                    "User-Agent": "AppGuard/1.10"
+                    "User-Agent": "AppGuard-AI/1.10"
                },
                 method="POST"
             )
@@ -630,7 +630,7 @@ class ComplianceAgent:
             })
 
         system_prompt = (
-            "你是【AppGuard 移动应用隐私合规场景化审计智能体】。\n"
+            "你是【AppGuard-AI 移动应用隐私合规场景化智审智能体】。\n"
             "你的核心职责是突破传统合规工具‘机械扫描、一刀切误报’的缺陷，依据国家网信办、工业和信息化部、公安部、国家市场监督管理总局四部委联合发布的《常见类型移动互联网应用程序必要个人信息范围规定》（39类国标）与《个人信息保护法》最小必要原则，"
             "结合【应用程序品类】与【开发者申报的真实业务用途说明】，"
             "对底层 DEX 字节码与交叉引用 (XRef) 检出的敏感 API 调用执行场景化因果分析与代码位置精准追溯。\n"
@@ -1002,7 +1002,7 @@ class ComplianceAgent:
             title = f"经 Agent 场景上下文智能裁决：主营功能合理，但部分调用时机与存储规范存在工程实现瑕疵，建议定向补丁重构"
 
         assessment = (
-            f"本审计由【AppGuard 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第六条“最小必要原则”"
+            f"本审计由【AppGuard-AI 移动合规智能体 (离线专家推理引擎)】基于《个人信息保护法》第六条“最小必要原则”"
             f"及国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》对目标应用 [{audit_data.get('app_name')}] 执行深度场景因果研判。\n"
             f"【业务画像对照】：开发者申报该应用为【{cat_info['name']}】，法定必要信息基线为“{cat_info['law_ref']}”。\n"
             f"【裁决穿透分析】：传统静态规则引擎基线参考分为 {baseline_score} 分，系未经业务场景滤波的机械扣分。"
@@ -1014,7 +1014,7 @@ class ComplianceAgent:
 
         return {
             "is_agent_enabled": True,
-            "agent_provider": "AppGuard-Expert-Agent (内置离线专家知识图谱)",
+            "agent_provider": "AppGuard-AI-Expert-Agent (内置离线专家知识图谱)",
             "evaluation_mode": "DETERMINISTIC_RULES",
             "confidence_percent": None,
             "degrade_reason": degrade_reason or "未配置大模型 API Key 或处于离线模式，已启用内置离线确定性专家规则引擎",

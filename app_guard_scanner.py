@@ -73,7 +73,7 @@ public class DeviceIdComplianceHelper {
     public static String getSafeDeviceId(Context context) {
         // 1. 核心合闸校验：未签署隐私协议前严禁触发底层敏感硬件调用
         if (!PrivacyConsentManager.isAgreed(context)) {
-            Log.w("AppGuard", "[合规阻断] 用户未明示同意隐私协议，拦截设备硬件标识读取");
+            Log.w("AppGuard-AI", "[合规阻断] 用户未明示同意隐私协议，拦截设备硬件标识读取");
             return ""; 
         }
         // 2. Android 10+ 废弃 TelephonyManager.getDeviceId()，切换至 MSA OAID
@@ -268,7 +268,7 @@ public class CompliantAudioRecorder {
     public void startRecordingOnUserClick(Activity activity) {
         // 1. 校验用户是否前台主动点击
         if (!activity.hasWindowFocus() || !mIsUserInitiated) {
-            Log.w("AppGuard", "[合规拦截] 非前台主动手势，拒绝初始化 AudioRecord");
+            Log.w("AppGuard-AI", "[合规拦截] 非前台主动手势，拒绝初始化 AudioRecord");
             return;
         }
         // 2. 绑定 Lifecycle，退后台立即释放资源
@@ -468,7 +468,7 @@ public class CompliantPluginLoader {
         // 1. 强力校验待加载 APK 的 SHA-256 签名指纹，严防中间人篡改或投毒
         String actualSha256 = DigestUtils.sha256Hex(new FileInputStream(apkFile));
         if (!actualSha256.equalsIgnoreCase(expectedSha256)) {
-            throw new SecurityException("[AppGuard 合规拦截] 动态插件指纹与应用安全基线不一致，拒绝加载！");
+            throw new SecurityException("[AppGuard-AI 合规拦截] 动态插件指纹与应用安全基线不一致，拒绝加载！");
         }
         // 2. 存放在应用内部不可导出的只读目录 code_cache 中
         File optDir = context.getCodeCacheDir();
@@ -836,7 +836,7 @@ def run_audit(apk_path):
 
     start_time = time.time()
     print(f"\n{'='*70}")
-    print(f"[*] 启动移动应用隐私合规自动化审计引擎 (AppGuard Audit Engine v1.10)")
+    print(f"[*] 启动移动应用隐私合规自动化智审引擎 (AppGuard-AI Audit Engine v1.10)")
     print(f"[*] 四维加权分级评估模型 (WCI) · 12 大工信部专项红线与责任穿透")
     print(f"[*] 目标安装包: {os.path.abspath(apk_path)}")
     print(f"{'='*70}\n")
@@ -1198,7 +1198,7 @@ def generate_html_report(apk_path, app_name, package_name, target_sdk, permissio
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>AppGuard 移动应用隐私合规与SDK安全体检报告 - {app_name}</title>
+    <title>AppGuard-AI 移动应用隐私合规与SDK安全体检报告 - {app_name}</title>
     <style>
         :root {{
             --bg: #0b0f19;
@@ -1307,7 +1307,7 @@ def generate_html_report(apk_path, app_name, package_name, target_sdk, permissio
     <div class="container">
         <div class="header">
             <div class="logo-title">
-                <h2>AppGuard · 移动互联网应用程序隐私合规与SDK安全体检报告</h2>
+                <h2>AppGuard-AI · 基于国标场景先验与合规大模型的移动应用端云双轨智审报告</h2>
             </div>
             <div>
                 <span class="badge badge-medium">对标 GB/T 35273-2020 规范</span>

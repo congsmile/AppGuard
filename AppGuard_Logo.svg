@@ -15,6 +15,6 @@
   <!-- Inner Pure White Checkmark -->
   <path d="M216 230 L248 262 L304 188" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- AppGuard Text (Obsidian Black) -->
-  <text x="256" y="432" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="42" font-weight="bold" fill="#090d16" text-anchor="middle" letter-spacing="1">AppGuard</text>
+  <!-- AppGuard-AI Text (Obsidian Black) -->
+  <text x="256" y="432" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" font-size="36" font-weight="bold" fill="#090d16" text-anchor="middle" letter-spacing="1">AppGuard-AI</text>
 </svg>
