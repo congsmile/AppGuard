@@ -1,5 +1,6 @@
 import unittest
 import os
+import json
 import re
 import time
 import tempfile
@@ -412,12 +413,18 @@ class TestAuditEngine(unittest.TestCase):
         self.assertEqual(exempt_findings[0]["rule"]["points"], 0)
 
     def test_agent_category_inference(self):
-        """测试 Agent 针对常见包名的品类先验推断"""
-        self.assertEqual(compliance_agent.infer_app_category("mark.via"), "browser_utility")
-        self.assertEqual(compliance_agent.infer_app_category("com.tencent.qqgame.xq"), "mobile_game")
-        self.assertEqual(compliance_agent.infer_app_category("com.cainiao.wireless"), "ecommerce_life")
-        self.assertEqual(compliance_agent.infer_app_category("com.eg.android.AlipayGphone"), "finance_banking")
-        self.assertEqual(compliance_agent.infer_app_category("com.autonavi.minimap"), "navigation_travel")
+        """测试 Agent 针对常见包名的品类先验推断与别名向下兼容"""
+        self.assertEqual(compliance_agent.infer_app_category("mark.via"), "web_browser")
+        self.assertEqual(compliance_agent.infer_app_category("com.tencent.qqgame.xq"), "online_gaming")
+        self.assertEqual(compliance_agent.infer_app_category("com.cainiao.wireless"), "postal_delivery")
+        self.assertEqual(compliance_agent.infer_app_category("com.eg.android.AlipayGphone"), "online_payment")
+        self.assertEqual(compliance_agent.infer_app_category("com.autonavi.minimap"), "map_navigation")
+        # 验证历史别名映射完整有效
+        self.assertEqual(compliance_agent.CATEGORY_ALIASES.get("browser_utility"), "web_browser")
+        self.assertEqual(compliance_agent.CATEGORY_ALIASES.get("mobile_game"), "online_gaming")
+        self.assertEqual(compliance_agent.CATEGORY_ALIASES.get("ecommerce_life"), "online_shopping")
+        self.assertEqual(compliance_agent.CATEGORY_ALIASES.get("finance_banking"), "mobile_banking")
+        self.assertEqual(compliance_agent.CATEGORY_ALIASES.get("navigation_travel"), "map_navigation")
 
     def test_agent_contextual_exemption_and_tracing(self):
         """测试 Agent 结合业务场景执行最小必要性研判、调用位置溯源与合规豁免"""
@@ -450,8 +457,8 @@ class TestAuditEngine(unittest.TestCase):
 
         self.assertIn("MIIT-04-SHAKE-SENSOR", traces)
         v_action = traces["MIIT-04-SHAKE-SENSOR"]["verdict_action"]
-        self.assertTrue("维持" in v_action or "严惩" in v_action or "扣分" in v_action)
-        self.assertEqual(traces["MIIT-04-SHAKE-SENSOR"]["adjusted_points"], 5)
+        self.assertTrue("维持" in v_action or "严惩" in v_action or "扣分" in v_action or "扣罚" in v_action)
+        self.assertEqual(traces["MIIT-04-SHAKE-SENSOR"]["adjusted_points"], 7)
 
     def test_report_generator_embeds_agent_verdict(self):
         """测试报告生成引擎正确嵌入 Agent 场景化最小必要裁决意见书"""
@@ -539,24 +546,62 @@ class TestAuditEngine(unittest.TestCase):
         with patch("compliance_agent.get_agent_config", return_value=offline_cfg):
             # 1. 实用工具 (浏览器)
             r_via = compliance_agent.classify_app_and_describe("mark.via", "Via 浏览器")
-            self.assertEqual(r_via["category"], "browser_utility")
-            self.assertIn("实用工具", r_via["category_name"])
-            self.assertIn("第32条", r_via["law_ref"])
+            self.assertEqual(r_via["category"], "web_browser")
+            self.assertIn("浏览器", r_via["category_name"])
+            self.assertIn("32", r_via["law_ref"])
             self.assertTrue(len(r_via["description"]) > 10)
             self.assertGreaterEqual(r_via["confidence"], 0.90)
 
             # 2. 手机游戏
             r_game = compliance_agent.classify_app_and_describe("com.tencent.qqgame.xq", "天天象棋")
-            self.assertEqual(r_game["category"], "mobile_game")
+            self.assertEqual(r_game["category"], "online_gaming")
             self.assertIn("游戏", r_game["category_name"])
 
             # 3. 电商物流
             r_cainiao = compliance_agent.classify_app_and_describe("com.cainiao.wireless", "菜鸟裹裹")
-            self.assertEqual(r_cainiao["category"], "ecommerce_life")
+            self.assertEqual(r_cainiao["category"], "postal_delivery")
 
             # 4. 移动支付金融
             r_pay = compliance_agent.classify_app_and_describe("com.eg.android.AlipayGphone", "支付宝")
-            self.assertEqual(r_pay["category"], "finance_banking")
+            self.assertEqual(r_pay["category"], "online_payment")
+
+    def test_full_39_categories_coverage_and_no_empty_fields(self):
+        """测试全量 39 类法定个人信息规范知识库覆盖完整、无空壳字段"""
+        self.assertTrue(os.path.exists("gb_categories_39.json"))
+        with open("gb_categories_39.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(len(data), 40, "必须包含法定 1~39 类以及第 40 类通用扩展")
+        required_fields = ["id", "key", "name", "raw_name", "law_ref", "basic_service", "necessary_info", "no_info_needed", "legitimate_apis", "legitimate_scenarios", "strict_redlines", "sample_description"]
+        no_info_ids = []
+        for k, v in data.items():
+            for field in required_fields:
+                self.assertIn(field, v, f"类别 {k} 缺少必须字段 {field}")
+                val = v[field]
+                if isinstance(val, str):
+                    self.assertTrue(len(val.strip()) > 0, f"类别 {k} 的字段 {field} 不可为空白字符串")
+            if v["no_info_needed"]:
+                no_info_ids.append(v["id"])
+        # 验证法定 13 类免收集个人信息品类
+        expected_no_info = [21, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]
+        self.assertEqual(sorted(no_info_ids), expected_no_info)
+
+    def test_bidirectional_score_penalty_and_offline_confidence(self):
+        """测试 Agent 离线模式置信度明确标注与违背红线双向加重扣罚"""
+        agent = compliance_agent.ComplianceAgent(config={"mode": "offline_only"})
+        dummy_data = {
+            "app_name": "TestGame",
+            "package_name": "com.test.game",
+            "compliance_score": 85,
+            "findings": [
+                {"rule": {"id": "MIIT-04-SHAKE-SENSOR", "name": "摇一摇", "points": 5, "calculated_points": 5}, "details": []},
+                {"rule": {"id": "MIIT-03-STORAGE-DIRECTORY", "name": "全盘读写", "points": 5, "calculated_points": 5}, "details": []}
+            ]
+        }
+        res = agent.analyze(dummy_data, app_category="online_gaming")
+        self.assertIsNone(res["confidence_percent"], "离线规则推导不应使用统计置信度伪装")
+        self.assertEqual(res["evaluation_mode"], "DETERMINISTIC_RULES")
+        self.assertGreater(res["score_penalty"], 0, "严重违规应当计算扣罚分")
+        self.assertLess(res["adjusted_score"], 85, "违背红线场景下最终裁决分应低于基准分")
 
 if __name__ == "__main__":
     unittest.main()

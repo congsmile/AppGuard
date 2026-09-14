@@ -54,95 +54,46 @@ FALLBACK_MODELS = {
     "custom": ["deepseek-chat", "deepseek-reasoner", "glm-4-flash", "moonshot-v1-8k", "qwen-max"]
 }
 
-# 国家网信办/工信部《常见类型移动互联网应用程序必要个人信息范围规定》39类核心高频品类基线
-GB_APP_CATEGORIES = {
-    "browser_utility": {
-        "name": "实用工具 (浏览器/下载/清理)",
-        "law_ref": "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
-        "legitimate_apis": [
-            "android.app.DownloadManager -> enqueue",
-            "android.content.ClipboardManager -> getPrimaryClip"
-        ],
-        "legitimate_scenarios": "浏览器具有网页渲染与网络文件下载的核心业务属性，调用 DownloadManager 属于主营功能支撑；剪贴板访问用于快捷识别并导航用户复制的网址，但应在获取焦点或主动粘贴时触发。",
-        "strict_redlines": "严禁开屏无感知高频监听加速度传感器用于广告晃动归因；严禁非明示读取设备底层硬件标识码 (IMEI/MAC)；全盘扫描文件应迁移至 Android 分区存储与 SAF 框架。",
-        "sample_description": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
-    },
-    "navigation_travel": {
-        "name": "地图导航与位置出行",
-        "law_ref": "四部委《规定》第1条：地图导航类，必要信息为经纬度位置信息、出发地、到达地",
-        "legitimate_apis": [
-            "android.location.LocationManager -> getLastKnownLocation",
-            "android.location.LocationManager -> requestLocationUpdates",
-            "android.net.wifi.WifiManager -> getConnectionInfo"
-        ],
-        "legitimate_scenarios": "地图路线规划、即时导航与基站/Wi-Fi辅助定位属于不可或缺的底层核心业务，索取精确定位与Wi-Fi状态具有充分的法理依据与业务正当性。",
-        "strict_redlines": "严禁非报障/非头像场景静默扫描全盘相册；严禁后台频繁读取剪贴板；严禁索取通话记录与通讯录。",
-        "sample_description": "高精度电子地图与智能路线导航应用，提供实时路线规划、路况提醒与周边生活检索服务。"
-    },
-    "im_social": {
-        "name": "即时通信与社交通讯",
-        "law_ref": "四部委《规定》第3条：即时通信类，必要信息为注册用户移动电话号码、账号与好友列表",
-        "legitimate_apis": [
-            "android.media.AudioRecord -> startRecording",
-            "android.hardware.Camera -> open",
-            "android.content.ClipboardManager -> getPrimaryClip"
-        ],
-        "legitimate_scenarios": "即时聊天过程中发送语音消息、发起音视频通话与文本复制粘贴属于基本沟通功能，调用麦克风、摄像头与剪贴板具有业务关联性（需由用户交互主动触发）。",
-        "strict_redlines": "严禁启动未登录即索取麦克风与摄像头权限；严禁后台暗中唤醒偷录音频；严禁索取无关的手机设备物理硬件码。",
-        "sample_description": "支持文字、语音、实时音视频通讯与朋友圈动态分享的即时社交软件。"
-    },
-    "ecommerce_life": {
-        "name": "网上购物与综合电商",
-        "law_ref": "四部委《规定》第4条：网上购物类，必要信息为购买人姓名、送货地址、联系电话、支付信息",
-        "legitimate_apis": [
-            "android.location.LocationManager -> getLastKnownLocation",
-            "android.content.ClipboardManager -> getPrimaryClip"
-        ],
-        "legitimate_scenarios": "用于匹配就近配送仓库、推荐同城生活优惠与淘口令/优惠券自动解析粘贴。",
-        "strict_redlines": "严禁冷启动高频暗中嗅探剪贴板跨域追踪用户；严禁索取手机通讯录与短信内容；严禁集成未备案的侵入式广告SDK。",
-        "sample_description": "综合型移动电商购物平台，提供商品选购、智能搜索、在线支付与订单物流追踪功能。"
-    },
-    "mobile_game": {
-        "name": "手机游戏与休闲娱乐",
-        "law_ref": "四部委《规定》第22条：网络游戏类，基本功能服务为提供网络游戏产品和服务，必要个人信息为实名认证身份信息",
-        "legitimate_apis": [
-            "android.app.DownloadManager -> enqueue"
-        ],
-        "legitimate_scenarios": "游戏启动时在线下载资源更新包、DLC扩展包属于正常业务支撑。",
-        "strict_redlines": "严禁索取与游戏逻辑完全无关的地理位置、通话记录、通讯录与短信权限；严禁开屏利用微小晃动误触跳过广告；严禁违规读取设备底层序列号进行灰产设备封禁追踪。",
-        "sample_description": "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能。"
-    },
-    "camera_media": {
-        "name": "拍摄美颜与音视频编辑",
-        "law_ref": "四部委《规定》第18条：拍摄美颜类，无须个人信息即可使用基本功能服务",
-        "legitimate_apis": [
-            "android.hardware.Camera -> open",
-            "android.media.AudioRecord -> startRecording"
-        ],
-        "legitimate_scenarios": "拍照、滤镜渲染与录制视频属于核心业务，需调用摄像头与麦克风（需前台操作时动态授权）。",
-        "strict_redlines": "严禁以‘不给定位/不给手机号就不让用相机’为由剥夺用户基本拍照功能；严禁全盘遍历相册并外传未选定照片。",
-        "sample_description": "专业级手机滤镜相机与图片特效后期处理工具，提供实时美颜滤镜与海报排版功能。"
-    },
-    "finance_banking": {
-        "name": "金融理财与网上银行",
-        "law_ref": "四部委《规定》第10条：网络支付与理财类，必要信息为实名身份、银行卡信息与验证手机号",
-        "legitimate_apis": [
-            "android.hardware.Camera -> open",
-            "android.location.LocationManager -> getLastKnownLocation"
-        ],
-        "legitimate_scenarios": "扫码支付、大额风控人脸生物识别校验、交易所在地反欺诈风控定位属于强合规风控要求。",
-        "strict_redlines": "严禁过度读取用户已安装应用列表用于营销推销；严禁私自获取通话记录与非关联联系人通讯录。",
-        "sample_description": "提供移动支付、生活缴费、账户转账及稳健理财服务的综合金融服务客户端。"
-    },
-    "general_custom": {
-        "name": "其他 / 通用业务类别",
-        "law_ref": "《中华人民共和国个人信息保护法》第六条：收集个人信息，应当限于实现处理目的的最小范围，不得过度收集",
-        "legitimate_apis": [],
-        "legitimate_scenarios": "根据开发者申报的具体业务功能，结合用户主观诉求与透明告知原则综合研判。",
-        "strict_redlines": "严禁在《隐私政策》明示授权前执行静默收集；严禁隐藏、混淆第三方 SDK 的真实数据外发行为。",
-        "sample_description": "面向移动终端的专用业务服务应用程序。"
-    }
+# 兼容历史调用方的品类别名映射
+CATEGORY_ALIASES = {
+    "browser_utility": "web_browser",
+    "navigation_travel": "map_navigation",
+    "im_social": "instant_messaging",
+    "ecommerce_life": "online_shopping",
+    "mobile_game": "online_gaming",
+    "camera_media": "photography_beautification",
+    "finance_banking": "mobile_banking"
 }
+
+def _load_gb_categories() -> Dict[str, Any]:
+    """
+    加载国家网信办、工业和信息化部、公安部、国家市场监督管理总局四部委联合发布的
+    《常见类型移动互联网应用程序必要个人信息范围规定》（国信办秘字〔2021〕14号）
+    全量 39 类法定必要个人信息标准知识库 + 1 类通用业务类别
+    """
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "gb_categories_39.json"),
+        os.path.join(os.getcwd(), "gb_categories_39.json"),
+        "gb_categories_39.json"
+    ]
+    data = {}
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                break
+            except Exception as e:
+                print(f"[!] 读取 {p} 失败: {e}")
+
+    # 注入别名以保证 100% 历史兼容
+    for old_k, new_k in CATEGORY_ALIASES.items():
+        if new_k in data and old_k not in data:
+            data[old_k] = data[new_k]
+    return data
+
+# 全量 39 类法定标准品类基线知识图谱
+GB_APP_CATEGORIES = _load_gb_categories()
 
 
 def get_agent_config() -> Dict[str, Any]:
@@ -322,25 +273,68 @@ def fetch_remote_models(provider: str, api_key: str, base_url: str = "") -> Dict
 
 
 def infer_app_category(package_name: str, app_name: str = "") -> str:
-    """根据包名与应用名称智能预推断 App 类别"""
+    """
+    依据四部委《常见类型移动互联网应用程序必要个人信息范围规定》39类法定标准，
+    根据包名与应用名称启发式推断最匹配的品类 Key
+    """
     pkg = (package_name or "").lower()
     name = (app_name or "").lower()
 
-    if any(k in pkg or k in name for k in ["via", "browser", "chrome", "firefox", "clean", "tool", "manager", "浏览器", "清理", "工具"]):
-        return "browser_utility"
-    elif any(k in pkg or k in name for k in ["game", "qqgame", "xq", "chess", "poker", "play", "hero", "craft", "xiangqi", "游戏", "象棋", "对战"]):
-        return "mobile_game"
-    elif any(k in pkg or k in name for k in ["map", "navi", "didi", "amap", "baidu", "location", "地图", "导航", "出行"]):
-        return "navigation_travel"
-    elif any(k in pkg or k in name for k in ["chat", "weixin", "mobileqq", "com.tencent.mobileqq", "im", "message", "social", "talk", "微信", "聊天", "社交"]) or (("qq" in pkg or "qq" in name) and "game" not in pkg and "game" not in name):
-        return "im_social"
-    elif any(k in pkg or k in name for k in ["taobao", "cainiao", "菜鸟", "pinduoduo", "拼多多", "jd", "京东", "shop", "mall", "kuaidi", "快递", "电商", "购物"]):
-        return "ecommerce_life"
-    elif any(k in pkg or k in name for k in ["camera", "photo", "beauty", "edit", "image", "video", "相机", "拍照", "美颜", "视频", "特效"]):
-        return "camera_media"
-    elif any(k in pkg or k in name for k in ["pay", "alipay", "bank", "wallet", "finance", "credit", "支付", "支付宝", "银行", "理财", "钱包"]):
-        return "finance_banking"
-    return "browser_utility" if "via" in pkg else "general_custom"
+    # 1. 地图导航类 (第1类)
+    if any(k in pkg or k in name for k in ["autonavi", "amap", "minimap", "map", "navi", "高德", "百度地图", "地图", "导航"]):
+        return "map_navigation"
+    # 2. 网络约车类 (第2类)
+    elif any(k in pkg or k in name for k in ["didi", "uber", "cab", "ride", "滴滴", "花小猪", "约车", "打车", "曹操"]):
+        return "ride_hailing"
+    # 18. 网络游戏类 (第18类)
+    elif any(k in pkg or k in name for k in ["game", "qqgame", "xq", "chess", "poker", "play", "hero", "craft", "xiangqi", "游戏", "象棋", "对战", "手游"]):
+        return "online_gaming"
+    # 3. 即时通信类 (第3类)
+    elif any(k in pkg or k in name for k in ["weixin", "mobileqq", "tencent.mm", "im", "chat", "message", "social", "talk", "微信", "聊天", "即时通信"]) or (("qq" in pkg or "qq" in name) and not any(g in pkg or g in name for g in ["game", "xq", "象棋", "游戏"])):
+        return "instant_messaging"
+    # 4. 网络社区类 (第4类)
+    elif any(k in pkg or k in name for k in ["weibo", "zhihu", "tieba", "bilibili", "community", "forum", "微博", "知乎", "贴吧", "社区"]):
+        return "online_community"
+    # 8. 邮件快件寄递类 (第8类)
+    elif any(k in pkg or k in name for k in ["cainiao", "sf-express", "kuaidi", "express", "delivery", "菜鸟", "顺丰", "快递", "驿站", "寄件"]):
+        return "postal_delivery"
+    # 6. 网上购物类 (第6类)
+    elif any(k in pkg or k in name for k in ["taobao", "pinduoduo", "jd", "suning", "vip", "mall", "shop", "淘宝", "拼多多", "京东", "唯品会", "购物", "电商"]):
+        return "online_shopping"
+    # 5. 网络支付类 (第5类)
+    elif any(k in pkg or k in name for k in ["alipay", "pay", "unionpay", "wallet", "支付", "支付宝", "云闪付", "收银"]):
+        return "online_payment"
+    # 7. 餐饮外卖类 (第7类)
+    elif any(k in pkg or k in name for k in ["meituan", "eleme", "waimai", "takeaway", "food", "外卖", "美团", "饿了么"]):
+        return "food_delivery"
+    # 24. 手机银行类 (第24类)
+    elif any(k in pkg or k in name for k in ["bank", "icbc", "ccb", "boc", "abc", "cmb", "银行", "掌银", "网银"]):
+        return "mobile_banking"
+    # 29. 短视频类 (第29类)
+    elif any(k in pkg or k in name for k in ["douyin", "kuaishou", "tiktok", "musically", "shortvideo", "抖音", "快手", "短视频"]):
+        return "short_video"
+    # 28. 在线影音类 (第28类)
+    elif any(k in pkg or k in name for k in ["youku", "iqiyi", "tencentvideo", "video", "music", "kugou", "netease.cloudmusic", "爱奇艺", "优酷", "腾讯视频", "音乐", "网易云"]):
+        return "audio_video_playback"
+    # 32. 浏览器类 (第32类)
+    elif any(k in pkg or k in name for k in ["via", "browser", "chrome", "firefox", "uc", "quark", "edge", "opera", "浏览器", "夸克"]):
+        return "web_browser"
+    # 36. 拍摄美化类 (第36类)
+    elif any(k in pkg or k in name for k in ["camera", "photo", "beauty", "meitu", "face", "b612", "edit", "相机", "拍照", "美颜", "美图", "修图"]):
+        return "photography_beautification"
+    # 33. 输入法类 (第33类)
+    elif any(k in pkg or k in name for k in ["sogou.input", "ime", "keyboard", "inputmethod", "输入法", "搜狗输入法", "讯飞"]):
+        return "input_method"
+    # 34. 安全管理类 (第34类)
+    elif any(k in pkg or k in name for k in ["security", "antivirus", "cleaner", "safe", "安全卫士", "管家", "杀毒", "卫士", "清理"]):
+        return "security_management"
+    # 38. 实用工具类 (第38类)
+    elif any(k in pkg or k in name for k in ["tool", "calculator", "compass", "calendar", "flashlight", "clock", "工具", "计算器", "日历", "指南针"]):
+        return "utility_tools"
+    # 23. 投资理财类 (第23类)
+    elif any(k in pkg or k in name for k in ["stock", "fund", "invest", "finance", "eastmoney", "securities", "理财", "证券", "基金", "股票"]):
+        return "investment_finance"
+    return "general_custom"
 
 
 def classify_app_and_describe(
@@ -378,17 +372,30 @@ def classify_app_and_describe(
                 "根据给定的 App 应用名称与包名，推断其最适用的法定业务类别，并生成一段精炼、严谨的主营业务用途说明（60-120字），"
                 "用于后续合规审计中的‘最小必要原则’因果溯源与合理性研判。\n\n"
                 "候选分类 key 列表如下（必须从以下 key 中选择其一）：\n"
-                "- browser_utility: 实用工具 (浏览器/下载/清理)\n"
-                "- navigation_travel: 地图导航与位置出行\n"
-                "- im_social: 即时通信与社交通讯\n"
-                "- ecommerce_life: 网上购物与综合电商\n"
-                "- camera_media: 拍摄美颜与音视频编辑\n"
-                "- mobile_game: 手机游戏与休闲娱乐\n"
-                "- finance_banking: 金融理财与网上银行\n"
-                "- general_custom: 其他 / 通用业务类别\n\n"
+                "1. map_navigation: 地图导航类 (第1类)\n"
+                "2. ride_hailing: 网络约车类 (第2类)\n"
+                "3. instant_messaging: 即时通信类 (第3类)\n"
+                "4. online_community: 网络社区类 (第4类)\n"
+                "5. online_payment: 网络支付类 (第5类)\n"
+                "6. online_shopping: 网上购物类 (第6类)\n"
+                "7. food_delivery: 餐饮外卖类 (第7类)\n"
+                "8. postal_delivery: 邮件快件寄递类 (第8类)\n"
+                "18. online_gaming: 网络游戏类 (第18类)\n"
+                "24. mobile_banking: 手机银行类 (第24类)\n"
+                "27. live_streaming: 网络直播类 (第27类)\n"
+                "28. audio_video_playback: 在线影音类 (第28类)\n"
+                "29. short_video: 短视频类 (第29类)\n"
+                "30. news_information: 新闻资讯类 (第30类)\n"
+                "31. fitness_exercise: 运动健身类 (第31类)\n"
+                "32. web_browser: 浏览器类 (第32类)\n"
+                "33. input_method: 输入法类 (第33类)\n"
+                "34. security_management: 安全管理类 (第34类)\n"
+                "36. photography_beautification: 拍摄美化类 (第36类)\n"
+                "38. utility_tools: 实用工具类 (第38类)\n"
+                "40. general_custom: 其他 / 通用业务类别 (第40类)\n\n"
                 "请输出纯 JSON 格式：\n"
                 "{\n"
-                '  "category": "上述候选 key 之一",\n'
+                '  "category": "上述标准候选 key 之一",\n'
                 '  "confidence": 0.95,\n'
                 '  "reason": "分类依据简述",\n'
                 '  "description": "精炼的主营业务用途说明，阐明该应用核心功能及为何需要网络、存储等基本能力"\n'
@@ -428,8 +435,9 @@ def classify_app_and_describe(
                     cat = data.get("category", "")
                     if cat in GB_APP_CATEGORIES:
                         cat_info = GB_APP_CATEGORIES[cat]
+                        canonical_k = cat_info.get("key", cat)
                         return {
-                            "category": cat,
+                            "category": canonical_k,
                             "category_name": cat_info["name"],
                             "law_ref": cat_info["law_ref"],
                             "description": data.get("description") or cat_info["sample_description"],
@@ -447,15 +455,15 @@ def classify_app_and_describe(
 
     pkg_lower = target_pkg.lower()
     name_lower = target_name.lower()
-    if "via" in pkg_lower or "via" in name_lower:
+    if "via" in pkg_lower or "via" in name_lower or inferred_cat == "web_browser":
         desc = "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
         reason = "命中轻量浏览器核心特征"
         confidence = 0.98
-    elif "xq" in pkg_lower or "象棋" in name_lower or "chess" in pkg_lower:
+    elif "xq" in pkg_lower or "象棋" in name_lower or "chess" in pkg_lower or inferred_cat == "online_gaming":
         desc = "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，核心链路围绕游戏对弈，无需读取通讯录与麦克风。"
         reason = "命中休闲棋牌对战游戏特征"
         confidence = 0.98
-    elif "cainiao" in pkg_lower or "菜鸟" in name_lower:
+    elif "cainiao" in pkg_lower or "菜鸟" in name_lower or inferred_cat == "postal_delivery":
         desc = "综合型移动电商与智慧物流平台，提供快递包裹多端追踪、就近驿站自提通知及寄件履约服务。"
         reason = "命中电商物流查件与自提服务特征"
         confidence = 0.96
@@ -463,7 +471,7 @@ def classify_app_and_describe(
         desc = "综合型移动电商购物平台，提供商品选购、拼单优惠、在线支付与订单物流追踪功能，不含非明示剪贴板跨域追踪。"
         reason = "命中综合电商与拼单选购特征"
         confidence = 0.95
-    elif "alipay" in pkg_lower or "支付宝" in name_lower:
+    elif "alipay" in pkg_lower or "支付宝" in name_lower or inferred_cat == "online_payment":
         desc = "移动支付与综合数字金融生活平台，用于安全转账、扫码收付款、政务民生及生活缴费，需合规生物认证与交易安全风控。"
         reason = "命中移动支付与金融理财特征"
         confidence = 0.99
@@ -484,7 +492,7 @@ def classify_app_and_describe(
         "confidence": confidence,
         "reason": reason,
         "source": "expert_engine",
-        "model": "内置专家引擎"
+        "model": "内置专家引擎 (四部委 39 类国标图谱)"
     }
 
 
@@ -662,21 +670,32 @@ class ComplianceAgent:
                             except (ValueError, TypeError):
                                 item["adjusted_points"] = 0
 
+                    adj_score = max(0, min(100, int(parsed.get("adjusted_score", baseline_score))))
+                    diff = adj_score - baseline_score
+                    score_bonus = max(0, diff)
+                    score_penalty = max(0, -diff)
+
                     # 组装标准 Agent 输出对象
                     return {
                         "is_agent_enabled": True,
                         "agent_provider": f"{p_meta['name']} ({model_name})",
+                        "evaluation_mode": "LLM_SEMANTIC",
+                        "claim_mode": "申报主营业务品类（开发者自述/测试指定）",
                         "app_category_key": app_category,
                         "app_category_name": cat_info["name"],
                         "statutory_law_ref": cat_info["law_ref"],
                         "app_description": app_description,
                         "baseline_score": baseline_score,
-                        "adjusted_score": max(0, min(100, int(parsed.get("adjusted_score", baseline_score)))),
+                        "adjusted_score": adj_score,
+                        "score_bonus": score_bonus,
+                        "score_penalty": score_penalty,
                         "confidence_percent": float(parsed.get("confidence_percent", 95.8)),
+                        "confidence_desc": f"大模型场景语义研判置信度 {float(parsed.get('confidence_percent', 95.8)):.1f}%",
                         "verdict_badge": parsed.get("verdict_badge", "EXEMPTION_GRANTED"),
                         "verdict_title": parsed.get("verdict_title", "经 Agent 场景上下文研判完成"),
                         "comprehensive_assessment": parsed.get("comprehensive_assessment", ""),
                         "detailed_traces": eval_items,
+                        "legal_disclaimer": "【存证声明与责任边界】：本裁决书意见严格基于申报的主营业务品类与用途陈述。若实际应用运行中隐匿其它无关业务，或申报品类与实际服务严重背离，本合规豁免意见与分值修正将自动失效，不构成任何行政监管免责依据。",
                         "regulatory_citations": [
                             "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
                             cat_info["law_ref"],
@@ -736,7 +755,7 @@ class ComplianceAgent:
 
             # 1. 下载管理器规则 (DownloadManager)
             if "DOWNLOAD" in rule_id or "DownloadManager" in t_api:
-                if app_category in ["browser_utility", "mobile_game"]:
+                if app_category in ["web_browser", "browser_utility", "app_store", "online_gaming", "mobile_game"]:
                     business_necessity = "ESSENTIAL"
                     verdict_action = "场景合理·全额豁免扣分 (+5分)"
                     adjusted_points = 0
@@ -762,7 +781,7 @@ class ComplianceAgent:
 
             # 2. 剪贴板规则 (Clipboard)
             elif "CLIPBOARD" in rule_id or "Clipboard" in t_api:
-                if app_category in ["browser_utility", "im_social", "ecommerce_life"]:
+                if app_category in ["web_browser", "browser_utility", "instant_messaging", "im_social", "online_shopping", "ecommerce_life", "utility_tools", "input_method"]:
                     business_necessity = "DEFECTIVE"
                     verdict_action = "降权优化·扣分减半 (+2分)"
                     adjusted_points = max(1, base_points // 2)
@@ -784,14 +803,18 @@ class ComplianceAgent:
                     )
                 else:
                     business_necessity = "UNNECESSARY"
-                    verdict_action = "违背最小必要·维持扣分"
+                    verdict_action = "违背最小必要·加重扣罚 (-2分)"
+                    score_penalty += 2
+                    adjusted_points = base_points + 2
                     has_severe = True
-                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]，该品类完全无需常驻读取剪贴板，涉嫌跨域归因窃取隐私。"
+                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]，该品类完全无需常驻读取剪贴板，涉嫌跨域归因窃取隐私，加重扣除 2 分。"
 
             # 3. 摇一摇传感器规则 (Shake Sensor)
             elif "SHAKE" in rule_id or "SensorManager" in t_api:
                 business_necessity = "UNNECESSARY"
-                verdict_action = "违背工信部红线·维持严惩 (-5分)"
+                verdict_action = "违背工信部红线·加重扣罚 (-2分)"
+                score_penalty += 2
+                adjusted_points = base_points + 2
                 has_severe = True
                 root_cause_explanation = (
                     f"【业务场景因果追溯】调用发生在 [{c_class}::{c_method}]，经责任穿透属于【{culprit}】。"
@@ -802,7 +825,7 @@ class ComplianceAgent:
 
             # 4. 分区存储逃逸 (Storage Directory)
             elif "STORAGE" in rule_id or "getExternalStorageDirectory" in t_api:
-                if app_category in ["browser_utility", "camera_media"]:
+                if app_category in ["web_browser", "browser_utility", "photography_beautification", "camera_media", "email_cloud_storage"]:
                     business_necessity = "DEFECTIVE"
                     verdict_action = "兼容性保留·架构整改建议"
                     adjusted_points = max(2, base_points - 2)
@@ -821,12 +844,15 @@ class ComplianceAgent:
                     )
                 else:
                     business_necessity = "UNNECESSARY"
-                    verdict_action = "维持扣分"
+                    verdict_action = "超范围全盘检索·加重扣罚 (-2分)"
+                    score_penalty += 2
+                    adjusted_points = base_points + 2
+                    has_severe = True
                     root_cause_explanation = f"调用位于 [{c_class}::{c_method}]，单机轻量应用全盘检索文件具有明显越权特征。"
 
             # 5. 地理位置规则 (Location)
             elif "LOCATION" in rule_id or "Location" in t_api:
-                if app_category in ["navigation_travel", "ecommerce_life"]:
+                if app_category in ["map_navigation", "navigation_travel", "ride_hailing", "food_delivery", "postal_delivery", "traffic_ticketing", "hotel_booking", "local_life", "vehicle_service", "online_payment", "mobile_banking"]:
                     business_necessity = "ESSENTIAL"
                     verdict_action = "主营功能必需·全额豁免扣分 (+5分)"
                     adjusted_points = 0
@@ -835,9 +861,11 @@ class ComplianceAgent:
                     root_cause_explanation = f"调用位于 [{c_class}::{c_method}]。该应用为出行或电商，定位属于核心功能，符合四部委 39 类标准第 1 条，予以豁免。"
                 else:
                     business_necessity = "UNNECESSARY"
-                    verdict_action = "严重违规·维持扣分"
+                    verdict_action = "越权超范围定位·加重扣罚 (-3分)"
+                    score_penalty += 3
+                    adjusted_points = base_points + 3
                     has_severe = True
-                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]。当前应用类别无需常驻定位，涉嫌过度收集行踪轨迹。"
+                    root_cause_explanation = f"调用位于 [{c_class}::{c_method}]。当前应用类别非出行服务，无需常驻定位，涉嫌过度收集行踪轨迹。"
 
             # 6. 其余规则通用回退
             else:
@@ -859,7 +887,7 @@ class ComplianceAgent:
             })
 
         # 重新核算 Agent 修正裁决分
-        adjusted_score = min(100, max(0, baseline_score + score_bonus))
+        adjusted_score = min(100, max(0, baseline_score + score_bonus - score_penalty))
         
         # 确定综述标签
         if has_exemption and adjusted_score >= 80:
@@ -886,17 +914,23 @@ class ComplianceAgent:
         return {
             "is_agent_enabled": True,
             "agent_provider": "AppGuard-Expert-Agent (内置离线专家知识图谱)",
+            "evaluation_mode": "DETERMINISTIC_RULES",
+            "confidence_percent": None,
+            "confidence_desc": "四部委 39 类国标确定性规则推导（非统计概率）",
+            "claim_mode": "申报主营业务品类（开发者自述/测试指定）",
             "app_category_key": app_category,
             "app_category_name": cat_info["name"],
             "statutory_law_ref": cat_info["law_ref"],
             "app_description": app_description,
             "baseline_score": baseline_score,
             "adjusted_score": adjusted_score,
-            "confidence_percent": 96.5,
+            "score_bonus": score_bonus,
+            "score_penalty": score_penalty,
             "verdict_badge": badge,
             "verdict_title": title,
             "comprehensive_assessment": assessment,
             "detailed_traces": detailed_traces,
+            "legal_disclaimer": "【存证声明与责任边界】：本裁决书意见严格基于申报的主营业务品类与用途陈述。若实际应用运行中隐匿其它无关业务，或申报品类与实际服务严重背离，本合规豁免意见与分值修正将自动失效，不构成任何行政监管免责依据。",
             "regulatory_citations": [
                 "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
                 cat_info["law_ref"],

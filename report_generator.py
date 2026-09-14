@@ -126,7 +126,21 @@ def generate_report(data, output_dir="outputs"):
         desc_text = agent_analysis.get("app_description", "")
         b_score = agent_analysis.get("baseline_score", score)
         a_score = agent_analysis.get("adjusted_score", b_score)
-        conf = agent_analysis.get("confidence_percent", 96.0)
+        conf = agent_analysis.get("confidence_percent")
+        claim_mode = agent_analysis.get("claim_mode", "申报主营业务品类（开发者自述/测试指定）")
+        legal_disclaimer = agent_analysis.get("legal_disclaimer", "")
+        if conf is not None:
+            conf_str = f"(置信度 {conf:.1f}%)"
+        else:
+            conf_str = "(确定性国标规则推导)"
+        score_diff = a_score - b_score
+        if score_diff > 0:
+            diff_badge = f'<span style="color:#10b981;font-size:11px;font-weight:bold;margin-left:4px;">(+{score_diff} 豁免回补)</span>'
+        elif score_diff < 0:
+            diff_badge = f'<span style="color:#f87171;font-size:11px;font-weight:bold;margin-left:4px;">({score_diff} 违规加重扣罚)</span>'
+        else:
+            diff_badge = '<span style="color:#94a3b8;font-size:11px;margin-left:4px;">(基线维持)</span>'
+        score_color = "#10b981" if a_score >= b_score else "#f87171"
         v_badge = agent_analysis.get("verdict_badge", "EXEMPTION_GRANTED")
         v_title = agent_analysis.get("verdict_title", "合规场景裁决完成")
         assessment = (agent_analysis.get("comprehensive_assessment") or "").replace("\n", "<br>")
@@ -185,7 +199,7 @@ def generate_report(data, output_dir="outputs"):
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:16px;">
                 <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;">
-                    <div style="font-size:11px;color:#94a3b8;">申报应用品类与定位</div>
+                    <div style="font-size:11px;color:#94a3b8;">{claim_mode}</div>
                     <div style="font-size:14px;font-weight:bold;color:#f8fafc;margin-top:4px;">{c_name}</div>
                     <div style="font-size:11px;color:#64748b;margin-top:2px;">四部委 39 类标准基线</div>
                 </div>
@@ -193,8 +207,9 @@ def generate_report(data, output_dir="outputs"):
                     <div style="font-size:11px;color:#94a3b8;">机检初筛分 vs Agent 场景裁定分</div>
                     <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px;">
                         <span style="font-size:13px;color:#94a3b8;text-decoration:line-through;">机检参考 {b_score} 分</span>
-                        <span style="font-size:20px;font-weight:900;color:#10b981;">Agent 最终 {a_score} 分</span>
-                        <span style="font-size:10px;color:#38bdf8;">(置信度 {conf}%)</span>
+                        <span style="font-size:20px;font-weight:900;color:{score_color};">Agent 最终 {a_score} 分</span>
+                        {diff_badge}
+                        <span style="font-size:10px;color:#38bdf8;">{conf_str}</span>
                     </div>
                 </div>
                 <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;grid-column:1 / -1;">
@@ -223,6 +238,7 @@ def generate_report(data, output_dir="outputs"):
                     </tbody>
                 </table>
             </div>
+            {f'<div style="margin-top:14px;padding:10px 14px;border-radius:8px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);font-size:11px;color:#fca5a5;line-height:1.5;"><strong style="color:#ef4444;">【法律存证声明与责任边界】：</strong>{legal_disclaimer}</div>' if legal_disclaimer else ''}
         </div>
         """
 

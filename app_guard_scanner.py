@@ -961,7 +961,40 @@ def run_audit(apk_path):
             print()
 
     print("[4/4] 正在生成《移动应用隐私合规与SDK风险体检报告 (HTML)》...")
-    report_path = generate_html_report(apk_path, app_name, package_name, target_sdk, permissions, compliance_score, risk_level, findings, time.time() - start_time, dimensions, is_fused, fuse_reason, sdk_attribution)
+    elapsed_time = round(time.time() - start_time, 2)
+    audit_dict = {
+        "apk_path": apk_path,
+        "app_name": app_name,
+        "package_name": package_name,
+        "target_sdk": target_sdk,
+        "permissions_count": len(permissions),
+        "permissions": permissions,
+        "compliance_score": compliance_score,
+        "raw_score": eval_res["raw_score"],
+        "risk_level": risk_level,
+        "is_fused": is_fused,
+        "fuse_reason": fuse_reason,
+        "dimensions": dimensions,
+        "findings": findings,
+        "sdk_attribution": sdk_attribution,
+        "elapsed": elapsed_time,
+        "audit_type": "static"
+    }
+
+    agent_analysis = None
+    try:
+        import compliance_agent
+        import report_generator
+        print("[*] 正在调用 Compliance Agent 执行 39 类国标场景化最小必要性研判与代码追溯...")
+        agent_analysis = compliance_agent.default_compliance_agent.analyze(audit_dict)
+        audit_dict["agent_analysis"] = agent_analysis
+        report_filename = report_generator.generate_report(audit_dict, output_dir="outputs")
+        report_path = os.path.join("outputs", report_filename)
+        print(f"[+] Compliance Agent 智能体场景化裁决完成: {agent_analysis.get('verdict_title')}")
+    except Exception as e:
+        print(f"[!] 接入智能体报告引擎异常，回退至基础报告生成器: {e}")
+        report_path = generate_html_report(apk_path, app_name, package_name, target_sdk, permissions, compliance_score, risk_level, findings, elapsed_time, dimensions, is_fused, fuse_reason, sdk_attribution)
+
     print(f"[+] 审计报告已生成: file://{os.path.abspath(report_path)}")
     print(f"[*] 全流程分析总耗时: {time.time() - start_time:.2f} 秒\n")
     return {
@@ -980,7 +1013,8 @@ def run_audit(apk_path):
         "dimensions": dimensions,
         "findings": findings,
         "sdk_attribution": sdk_attribution,
-        "elapsed": round(time.time() - start_time, 2)
+        "agent_analysis": agent_analysis,
+        "elapsed": elapsed_time
     }
 
 def generate_html_report(apk_path, app_name, package_name, target_sdk, permissions, score, risk_level, findings, elapsed, dimensions=None, is_fused=False, fuse_reason="", sdk_attribution=None, output_dir="outputs"):

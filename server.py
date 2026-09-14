@@ -1089,6 +1089,12 @@ def serve_report(filename):
 @app.route("/api/sample_apk/<path:filename>")
 def api_sample_apk(filename):
     safe_name = os.path.basename(filename)
+    target_path = os.path.join("work", safe_name)
+    if not os.path.exists(target_path):
+        return jsonify({
+            "success": False,
+            "error": f"演示样本 [{safe_name}] 在当前本地运行环境中暂未放置，您可在通道 A 直接拖入任意真实 APK 进行全自动化审计"
+        }), 404
     return send_from_directory("work", safe_name, as_attachment=True)
 
 @app.route("/api/agent_config", methods=["GET", "POST"])
@@ -1162,16 +1168,25 @@ def api_agent_classify():
 
 @app.route("/api/app_categories", methods=["GET"])
 def api_app_categories():
-    categories = []
+    unique_items = {}
     for k, v in compliance_agent.GB_APP_CATEGORIES.items():
-        categories.append({
-            "key": k,
-            "name": v["name"],
-            "law_ref": v["law_ref"],
-            "sample_description": v["sample_description"],
-            "strict_redlines": v["strict_redlines"]
-        })
-    return jsonify({"success": True, "categories": categories})
+        cat_id = v.get("id", 999)
+        if cat_id not in unique_items:
+            unique_items[cat_id] = {
+                "id": cat_id,
+                "key": v.get("key", k),
+                "name": v.get("name", k),
+                "raw_name": v.get("raw_name", ""),
+                "law_ref": v.get("law_ref", ""),
+                "basic_service": v.get("basic_service", ""),
+                "necessary_info": v.get("necessary_info", ""),
+                "no_info_needed": v.get("no_info_needed", False),
+                "legitimate_apis": v.get("legitimate_apis", []),
+                "sample_description": v.get("sample_description", ""),
+                "strict_redlines": v.get("strict_redlines", "")
+            }
+    sorted_cats = [unique_items[cid] for cid in sorted(unique_items.keys())]
+    return jsonify({"success": True, "categories": sorted_cats, "total": len(sorted_cats)})
 
 @app.route("/api/agent_analyze", methods=["POST"])
 def api_agent_analyze():

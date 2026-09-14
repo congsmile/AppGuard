@@ -880,14 +880,54 @@
                             <span>App 业务类别 (四部委 39 类国标)：</span>
                         </label>
                         <select id="appCategorySelect" onchange="onCategoryChanged()" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-medium text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
-                            <option value="browser_utility">实用工具 (浏览器 / 下载 / 清理)</option>
-                            <option value="navigation_travel">地图导航与位置出行</option>
-                            <option value="im_social">即时通信与社交通讯</option>
-                            <option value="ecommerce_life">网上购物与综合电商</option>
-                            <option value="camera_media">拍摄美颜与音视频编辑</option>
-                            <option value="mobile_game">手机游戏与休闲娱乐</option>
-                            <option value="finance_banking">金融理财与网上银行</option>
-                            <option value="general_custom">其他 / 通用业务类别</option>
+                            <optgroup label="法定必要信息品类 (第1~20类)">
+                                <option value="map_navigation">第1类: 地图导航类</option>
+                                <option value="ride_hailing">第2类: 网络约车类</option>
+                                <option value="instant_messaging">第3类: 即时通信类</option>
+                                <option value="online_community">第4类: 网络社区类</option>
+                                <option value="online_payment">第5类: 网络支付类</option>
+                                <option value="online_shopping">第6类: 网上购物类</option>
+                                <option value="food_delivery">第7类: 餐饮外卖类</option>
+                                <option value="postal_delivery">第8类: 邮件快件寄递类</option>
+                                <option value="traffic_ticketing">第9类: 交通票务类</option>
+                                <option value="dating_matchmaking">第10类: 婚恋相亲类</option>
+                                <option value="job_recruitment">第11类: 求职招聘类</option>
+                                <option value="online_lending">第12类: 网络借贷类</option>
+                                <option value="real_estate">第13类: 房屋租售类</option>
+                                <option value="used_car_trading">第14类: 二手车交易类</option>
+                                <option value="medical_consultation">第15类: 问诊挂号类</option>
+                                <option value="travel_service">第16类: 旅游服务类</option>
+                                <option value="hotel_booking">第17类: 酒店服务类</option>
+                                <option value="online_gaming">第18类: 网络游戏类</option>
+                                <option value="online_education">第19类: 学习教育类</option>
+                                <option value="local_life">第20类: 本地生活类</option>
+                            </optgroup>
+                            <optgroup label="特定业务与金融出行 (第21~26类)">
+                                <option value="women_health">第21类: 女性健康类 (免个人信息)</option>
+                                <option value="vehicle_service">第22类: 用车服务类</option>
+                                <option value="investment_finance">第23类: 投资理财类</option>
+                                <option value="mobile_banking">第24类: 手机银行类</option>
+                                <option value="email_cloud_storage">第25类: 邮箱云盘类</option>
+                                <option value="remote_conferencing">第26类: 远程会议类</option>
+                            </optgroup>
+                            <optgroup label="法定免收集个人信息品类 (第27~38类)">
+                                <option value="live_streaming">第27类: 网络直播类</option>
+                                <option value="audio_video_playback">第28类: 在线影音类</option>
+                                <option value="short_video">第29类: 短视频类</option>
+                                <option value="news_information">第30类: 新闻资讯类</option>
+                                <option value="fitness_exercise">第31类: 运动健身类</option>
+                                <option value="web_browser" selected>第32类: 浏览器类</option>
+                                <option value="input_method">第33类: 输入法类</option>
+                                <option value="security_management">第34类: 安全管理类</option>
+                                <option value="e_books">第35类: 电子图书类</option>
+                                <option value="photography_beautification">第36类: 拍摄美化类</option>
+                                <option value="app_store">第37类: 应用商店类</option>
+                                <option value="utility_tools">第38类: 实用工具类</option>
+                            </optgroup>
+                            <optgroup label="票务与扩展类别 (第39~40类)">
+                                <option value="show_ticketing">第39类: 演出票务类</option>
+                                <option value="general_custom">第40类: 通用业务类别</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="lg:col-span-8 space-y-1.5">
@@ -1517,12 +1557,12 @@
                 sel.appendChild(opt);
                 sel.value = pkg;
             }
-            if (pkg === "mark.via") selectAppCategory("browser_utility");
-            else if (pkg === "com.tencent.qqgame.xq") selectAppCategory("mobile_game");
-            else if (pkg === "com.cainiao.wireless") selectAppCategory("ecommerce_life");
-            else if (pkg === "com.xunmeng.pinduoduo") selectAppCategory("ecommerce_life");
-            else if (pkg === "com.zhiliaoapp.musically") selectAppCategory("camera_media");
-            else if (pkg === "com.eg.android.AlipayGphone") selectAppCategory("finance_banking");
+            if (pkg === "mark.via") selectAppCategory("web_browser");
+            else if (pkg === "com.tencent.qqgame.xq") selectAppCategory("online_gaming");
+            else if (pkg === "com.cainiao.wireless") selectAppCategory("postal_delivery");
+            else if (pkg === "com.xunmeng.pinduoduo") selectAppCategory("online_shopping");
+            else if (pkg === "com.zhiliaoapp.musically") selectAppCategory("short_video");
+            else if (pkg === "com.eg.android.AlipayGphone") selectAppCategory("online_payment");
 
             updateSelectedAppMeta();
             const opt = sel.options[sel.selectedIndex];
@@ -2144,18 +2184,25 @@
             try {
                 updateClassifyTargetHint(displayName, filename);
                 if (filename.includes("via")) {
-                    selectAppCategory("browser_utility", "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。");
+                    selectAppCategory("web_browser", "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。");
                 } else if (filename.includes("xq") || displayName.includes("象棋")) {
-                    selectAppCategory("mobile_game", "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，无需读取通讯录与麦克风。");
+                    selectAppCategory("online_gaming", "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，无需读取通讯录与麦克风。");
                 } else if (filename.includes("cainiao") || displayName.includes("菜鸟")) {
-                    selectAppCategory("ecommerce_life", "综合型移动电商与物流查件平台，提供快递包裹查询、就近驿站取件通知服务。");
+                    selectAppCategory("postal_delivery", "综合型移动电商与物流查件平台，提供快递包裹查询、就近驿站取件通知服务。");
                 } else if (filename.includes("alipay") || displayName.includes("支付宝")) {
-                    selectAppCategory("finance_banking", "移动支付与综合金融客户端，用于安全转账、扫码收付款及生活缴费，需合规生物认证与安全风控。");
+                    selectAppCategory("online_payment", "移动支付与综合金融客户端，用于安全转账、扫码收付款及生活缴费，需合规生物认证与安全风控。");
                 }
                 logConsole(`[*] 正在从演练库载入样本: ${displayName}...`);
                 showToast('载入演练样本', `正在读取 ${displayName} 并注入通道 A...`, 'info');
                 const res = await fetch(`/api/sample_apk/${filename}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        showToast('演练样本提示', `演示样本 [${displayName}] 在当前运行环境中暂未放置，您可在通道 A 拖入任意真实 APK 进行全自动化审计`, 'warning');
+                        logConsole(`[i] 演练样本文件未放置 (${filename})，请在通道 A 拖入真实 APK 进行测试`);
+                        return;
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 const blob = await res.blob();
                 const file = new File([blob], displayName, { type: "application/vnd.android.package-archive" });
                 await uploadAndAudit(file);
@@ -2434,7 +2481,14 @@
                 const aa = d.agent_analysis;
                 const baseScore = aa.baseline_score !== undefined ? aa.baseline_score : d.compliance_score;
                 const adjScore = aa.adjusted_score !== undefined ? aa.adjusted_score : baseScore;
-                const conf = aa.confidence_percent || 96.5;
+                const confText = (aa.confidence_percent !== null && aa.confidence_percent !== undefined)
+                    ? `(置信度 ${aa.confidence_percent}%)`
+                    : `(确定性国标规则推导)`;
+                const diff = adjScore - baseScore;
+                const diffBadge = diff > 0 
+                    ? `<span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 font-mono ml-1">(+${diff} 豁免回补)</span>`
+                    : (diff < 0 ? `<span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 font-mono ml-1">(${diff} 违规扣罚)</span>` : '');
+                const scoreColor = adjScore >= baseScore ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
                 const isExempt = aa.verdict_badge === 'EXEMPTION_GRANTED';
                 const isSevere = aa.verdict_badge === 'SEVERE_VIOLATION';
                 const badgeColor = isExempt 
@@ -2508,7 +2562,7 @@
                         <!-- 双轨比对大胶囊卡 -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div class="p-3 rounded-2xl inner-subcard border border-slate-200/80 dark:border-white/10">
-                                <div class="text-[10px] font-mono text-slate-400">申报品类与法定基线</div>
+                                <div class="text-[10px] font-mono text-slate-400">${escapeHtml(aa.claim_mode || '申报品类与法定基线')}</div>
                                 <div class="text-xs font-bold text-slate-900 dark:text-white mt-1">${escapeHtml(aa.app_category_name)}</div>
                                 <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">四部委 39 类必要个人信息标准</div>
                             </div>
@@ -2516,8 +2570,9 @@
                                 <div class="text-[10px] font-mono text-slate-400">机检初筛分 vs Agent 场景修正裁决分</div>
                                 <div class="flex items-baseline space-x-2 mt-1">
                                     <span class="text-xs text-slate-400 line-through">机检 ${baseScore}分</span>
-                                    <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">Agent ${adjScore}分</span>
-                                    <span class="text-[10px] text-sky-500 font-mono">(置信度 ${conf}%)</span>
+                                    <span class="text-lg font-black ${scoreColor} font-mono">Agent ${adjScore}分</span>
+                                    ${diffBadge}
+                                    <span class="text-[10px] text-sky-500 font-mono">${confText}</span>
                                 </div>
                             </div>
                             <div class="p-3 rounded-2xl inner-subcard border border-slate-200/80 dark:border-white/10">
@@ -2538,6 +2593,7 @@
                                 ${escapeHtml(aa.comprehensive_assessment)}
                             </div>
                         </div>
+                        ${aa.legal_disclaimer ? `<div class="p-2.5 rounded-xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 text-[10.5px] text-rose-700 dark:text-rose-300 leading-relaxed"><span class="font-bold">【法律效力与责任边界声明】：</span>${escapeHtml(aa.legal_disclaimer)}</div>` : ''}
 
                         <!-- 疑点代码调用位置追溯表 -->
                         <div>
@@ -3275,7 +3331,8 @@
         const DEFAULT_AUDIT_DATA = {
     "report_path": "outputs/Compliance_Report_mark.via_20260913_115340.html",
     "report_filename": "Compliance_Report_mark.via_20260913_115340.html",
-    "app_name": "Via",
+    "app_name": "Via 浏览器 [离线演练样本]",
+    "is_demo_sample": true,
     "package_name": "mark.via",
     "target_sdk": "35",
     "permissions_count": 25,
@@ -3813,40 +3870,86 @@
         // ==========================================
         // 智能体 (Agent) 与四部委 39 类品类联动核心逻辑
         // ==========================================
-        const CATEGORY_METAS = {
-            "browser_utility": {
-                "law_ref": "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
+        const CATEGORY_ALIASES = {
+            "browser_utility": "web_browser",
+            "navigation_travel": "map_navigation",
+            "im_social": "instant_messaging",
+            "ecommerce_life": "online_shopping",
+            "mobile_game": "online_gaming",
+            "camera_media": "photography_beautification",
+            "finance_banking": "mobile_banking"
+        };
+
+        let CATEGORY_METAS = {
+            "web_browser": {
+                "law_ref": "四部委《规定》第32条：浏览器类，无须个人信息即可使用基本功能服务",
                 "sample": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
             },
-            "navigation_travel": {
+            "map_navigation": {
                 "law_ref": "四部委《规定》第1条：地图导航类，必要信息为经纬度位置信息、出发地、到达地",
                 "sample": "高精度电子地图与智能路线导航应用，提供实时路线规划、路况提醒与周边生活检索服务。"
             },
-            "im_social": {
+            "instant_messaging": {
                 "law_ref": "四部委《规定》第3条：即时通信类，必要信息为注册用户移动电话号码、账号与好友列表",
                 "sample": "支持文字、语音、实时音视频通讯与朋友圈动态分享的即时社交软件。"
             },
-            "ecommerce_life": {
+            "online_shopping": {
                 "law_ref": "四部委《规定》第4条：网上购物类，必要信息为购买人姓名、送货地址、联系电话、支付信息",
                 "sample": "综合型移动电商购物平台，提供商品选购、智能搜索、在线支付与订单物流追踪功能。"
             },
-            "mobile_game": {
+            "online_gaming": {
                 "law_ref": "四部委《规定》第22条：网络游戏类，基本功能为提供游戏产品服务，必要信息为实名认证身份信息",
                 "sample": "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，无需麦克风与通讯录。"
             },
-            "camera_media": {
+            "photography_beautification": {
                 "law_ref": "四部委《规定》第18条：拍摄美颜类，无须个人信息即可使用基本功能服务",
                 "sample": "专业级手机滤镜相机与图片特效后期处理工具，提供实时美颜滤镜与海报排版功能。"
             },
-            "finance_banking": {
+            "mobile_banking": {
                 "law_ref": "四部委《规定》第10条：网络支付与理财类，必要信息为实名身份、银行卡信息与验证手机号",
                 "sample": "提供移动支付、生活缴费、账户转账及稳健理财服务的综合金融服务客户端，需人脸生物识别与安全风控。"
+            },
+            "online_payment": {
+                "law_ref": "四部委《规定》第5条：网络支付类，必要信息为注册用户电话号码、姓名、证件类型和号码、银行卡号",
+                "sample": "移动支付与综合数字金融生活平台，用于安全转账、扫码收付款、政务民生及生活缴费，需合规生物认证与交易安全风控。"
+            },
+            "postal_delivery": {
+                "law_ref": "四部委《规定》第8条：邮件快件寄递类，必要信息为寄件人姓名证件联系电话、收件人姓名地址电话、寄递物品信息",
+                "sample": "综合型移动电商与智慧物流平台，提供快递包裹多端追踪、就近驿站自提通知及寄件履约服务。"
+            },
+            "short_video": {
+                "law_ref": "四部委《规定》第29条：短视频类，无须个人信息即可使用基本功能服务",
+                "sample": "短视频创作与社交分享平台，提供拍摄录制、滤镜特效渲染、即时互动与推荐播放服务，需合规调用相机与麦克风。"
             },
             "general_custom": {
                 "law_ref": "《个人信息保护法》第六条：收集个人信息应当限于实现处理目的的最小范围，不得过度收集",
                 "sample": "面向移动终端的专用业务服务应用程序。"
             }
         };
+
+        // 异步同步全量 39 类服务端知识库元数据
+        async function fetchFullAppCategories() {
+            try {
+                const res = await fetch('/api/app_categories');
+                const data = await res.json();
+                if (data.success && data.categories) {
+                    data.categories.forEach(c => {
+                        CATEGORY_METAS[c.key] = {
+                            law_ref: c.law_ref,
+                            sample: c.sample_description
+                        };
+                    });
+                    for (const [old_k, new_k] of Object.entries(CATEGORY_ALIASES)) {
+                        if (CATEGORY_METAS[new_k]) {
+                            CATEGORY_METAS[old_k] = CATEGORY_METAS[new_k];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("加载服务端 39 类元数据降级:", e);
+            }
+        }
+        fetchFullAppCategories();
 
         let currentAgentConfig = null;
         let agentProviders = {
@@ -4284,7 +4387,7 @@
             const lawEl = document.getElementById('catLawRef');
             const descInput = document.getElementById('appDescriptionInput');
             if (!sel) return;
-            const cat = sel.value;
+            const cat = CATEGORY_ALIASES[sel.value] || sel.value;
             const meta = CATEGORY_METAS[cat] || CATEGORY_METAS['general_custom'];
             if (lawEl && meta) {
                 lawEl.textContent = meta.law_ref;
@@ -4300,13 +4403,14 @@
         }
 
         function selectAppCategory(catKey, customDesc = '') {
+            const canonicalKey = CATEGORY_ALIASES[catKey] || catKey;
             const sel = document.getElementById('appCategorySelect');
             if (sel) {
-                sel.value = catKey;
+                sel.value = canonicalKey;
             }
             const lawEl = document.getElementById('catLawRef');
             const descInput = document.getElementById('appDescriptionInput');
-            const meta = CATEGORY_METAS[catKey] || CATEGORY_METAS['general_custom'];
+            const meta = CATEGORY_METAS[canonicalKey] || CATEGORY_METAS['general_custom'];
             if (lawEl && meta) {
                 lawEl.textContent = meta.law_ref;
             }
