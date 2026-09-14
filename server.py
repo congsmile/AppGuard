@@ -375,7 +375,7 @@ def extract_and_package_targeted_payload(serial, remote_path, package_name, loca
     端云协同核心技术：在真机端执行靶向按需抽离 (classes*.dex 与 AndroidManifest.xml)，
     直接过滤 70%~90% 的音视频、3D贴图与 Native 动态库，流式打包传输，
     将传输与解包等待时间缩减 80% 以上。
-    - audit_mode == 'quick': 现场答辩速检模式，定向抽取 classes1~3.dex 主入口 (~30s)
+    - audit_mode == 'quick': 快速速检模式，定向抽取 classes1~3.dex 主入口 (~30s)
     - audit_mode == 'deep': 全量深度代码审计模式，抽取 classes*.dex 全量图谱 (~5m)
     """
     import zipfile, shutil
@@ -1135,6 +1135,30 @@ def api_agent_test():
 
     res = compliance_agent.test_agent_connection(provider, api_key, base_url, model_name)
     return jsonify(res)
+
+@app.route("/api/agent_models", methods=["POST"])
+def api_agent_models():
+    data = request.get_json() or {}
+    provider = data.get("provider", "deepseek")
+    api_key = data.get("api_key", "").strip()
+    base_url = data.get("base_url", "").strip()
+
+    if "****" in api_key or not api_key:
+        saved_cfg = compliance_agent.get_agent_config()
+        if saved_cfg.get("provider") == provider or not saved_cfg.get("provider"):
+            api_key = saved_cfg.get("api_key", "")
+
+    res = compliance_agent.fetch_remote_models(provider, api_key, base_url)
+    return jsonify(res)
+
+@app.route("/api/agent_classify", methods=["POST"])
+def api_agent_classify():
+    data = request.get_json() or {}
+    package_name = data.get("package_name", "").strip()
+    app_name = data.get("app_name", "").strip()
+    extra_context = data.get("extra_context", "").strip()
+    res = compliance_agent.classify_app_and_describe(package_name, app_name, extra_context)
+    return jsonify({"success": True, "data": res})
 
 @app.route("/api/app_categories", methods=["GET"])
 def api_app_categories():

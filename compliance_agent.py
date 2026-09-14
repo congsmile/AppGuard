@@ -46,6 +46,14 @@ DEFAULT_PROVIDERS = {
     }
 }
 
+# 各提供商在端点未提供 models 接口时的常用候选模型
+FALLBACK_MODELS = {
+    "deepseek": ["deepseek-chat", "deepseek-reasoner"],
+    "kimi": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+    "glm": ["glm-4-flash", "glm-4", "glm-4-plus", "glm-4-air", "glm-4-long", "glm-4v"],
+    "custom": ["deepseek-chat", "deepseek-reasoner", "glm-4-flash", "moonshot-v1-8k", "qwen-max"]
+}
+
 # 国家网信办/工信部《常见类型移动互联网应用程序必要个人信息范围规定》39类核心高频品类基线
 GB_APP_CATEGORIES = {
     "browser_utility": {
@@ -214,26 +222,270 @@ def test_agent_connection(provider: str, api_key: str, base_url: str = "", model
         return {"success": False, "message": f"连接异常: {str(e)}"}
 
 
+def fetch_remote_models(provider: str, api_key: str, base_url: str = "") -> Dict[str, Any]:
+    """通过该 API Key 直接向端点请求 /models 获取可用模型列表"""
+    p_info = DEFAULT_PROVIDERS.get(provider, DEFAULT_PROVIDERS["custom"])
+    target_base = (base_url or p_info["base_url"]).rstrip("/")
+    fallback = list(FALLBACK_MODELS.get(provider, ["deepseek-chat", "glm-4-flash"]))
+
+    if not api_key:
+        return {
+            "success": False,
+            "error": "请先输入 API Key 再请求模型列表",
+            "models": fallback,
+            "count": len(fallback),
+            "default_model": p_info.get("model") or fallback[0],
+            "source": "fallback"
+        }
+    if not target_base:
+        return {
+            "success": False,
+            "error": "Endpoint (Base URL) 不能为空",
+            "models": fallback,
+            "count": len(fallback),
+            "default_model": p_info.get("model") or fallback[0],
+            "source": "fallback"
+        }
+
+    # 构建候选 URL
+    candidate_urls = []
+    if target_base.endswith("/v1"):
+        candidate_urls.append(f"{target_base}/models")
+    else:
+        candidate_urls.append(f"{target_base}/models")
+        candidate_urls.append(f"{target_base}/v1/models")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "User-Agent": "AppGuard/1.08",
+        "Accept": "application/json"
+    }
+
+    last_err = ""
+    models_found = []
+
+    for url in candidate_urls:
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=10) as response:
+                res_body = response.read().decode("utf-8")
+                res_json = json.loads(res_body)
+                items = []
+                if isinstance(res_json, dict):
+                    if "data" in res_json and isinstance(res_json["data"], list):
+                        items = res_json["data"]
+                    elif "models" in res_json and isinstance(res_json["models"], list):
+                        items = res_json["models"]
+                elif isinstance(res_json, list):
+                    items = res_json
+
+                for item in items:
+                    mid = ""
+                    if isinstance(item, dict) and "id" in item:
+                        mid = str(item["id"]).strip()
+                    elif isinstance(item, str):
+                        mid = item.strip()
+                    if mid and mid not in models_found:
+                        models_found.append(mid)
+
+                if models_found:
+                    break
+        except urllib.error.HTTPError as he:
+            last_err = f"HTTP {he.code}: {he.reason}"
+            if he.code in (401, 403):
+                break
+        except Exception as e:
+            last_err = str(e)
+
+    if models_found:
+        default_m = p_info.get("model") or ""
+        if default_m not in models_found:
+            default_m = models_found[0]
+        return {
+            "success": True,
+            "models": models_found,
+            "count": len(models_found),
+            "default_model": default_m,
+            "source": "remote",
+            "message": f"成功请求到 {len(models_found)} 个可用模型"
+        }
+
+    return {
+        "success": False,
+        "error": last_err or "未能在该 API 端点获取到模型列表",
+        "models": fallback,
+        "count": len(fallback),
+        "default_model": p_info.get("model") or fallback[0],
+        "source": "fallback",
+        "message": f"拉取异常 ({last_err or '端点未开放 /models'})，已提供备选常用模型"
+    }
+
+
 def infer_app_category(package_name: str, app_name: str = "") -> str:
     """根据包名与应用名称智能预推断 App 类别"""
     pkg = (package_name or "").lower()
     name = (app_name or "").lower()
 
-    if any(k in pkg or k in name for k in ["via", "browser", "chrome", "firefox", "clean", "tool", "manager"]):
+    if any(k in pkg or k in name for k in ["via", "browser", "chrome", "firefox", "clean", "tool", "manager", "浏览器", "清理", "工具"]):
         return "browser_utility"
-    elif any(k in pkg or k in name for k in ["game", "qqgame", "xq", "chess", "poker", "play", "hero", "craft", "xiangqi"]):
+    elif any(k in pkg or k in name for k in ["game", "qqgame", "xq", "chess", "poker", "play", "hero", "craft", "xiangqi", "游戏", "象棋", "对战"]):
         return "mobile_game"
-    elif any(k in pkg or k in name for k in ["map", "navi", "didi", "amap", "baidu", "location"]):
+    elif any(k in pkg or k in name for k in ["map", "navi", "didi", "amap", "baidu", "location", "地图", "导航", "出行"]):
         return "navigation_travel"
-    elif any(k in pkg or k in name for k in ["chat", "weixin", "mobileqq", "com.tencent.mobileqq", "im", "message", "social", "talk"]) or (("qq" in pkg or "qq" in name) and "game" not in pkg and "game" not in name):
+    elif any(k in pkg or k in name for k in ["chat", "weixin", "mobileqq", "com.tencent.mobileqq", "im", "message", "social", "talk", "微信", "聊天", "社交"]) or (("qq" in pkg or "qq" in name) and "game" not in pkg and "game" not in name):
         return "im_social"
-    elif any(k in pkg or k in name for k in ["taobao", "cainiao", "pinduoduo", "jd", "shop", "mall", "kuaidi"]):
+    elif any(k in pkg or k in name for k in ["taobao", "cainiao", "菜鸟", "pinduoduo", "拼多多", "jd", "京东", "shop", "mall", "kuaidi", "快递", "电商", "购物"]):
         return "ecommerce_life"
-    elif any(k in pkg or k in name for k in ["camera", "photo", "beauty", "edit", "image", "video"]):
+    elif any(k in pkg or k in name for k in ["camera", "photo", "beauty", "edit", "image", "video", "相机", "拍照", "美颜", "视频", "特效"]):
         return "camera_media"
-    elif any(k in pkg or k in name for k in ["pay", "alipay", "bank", "wallet", "finance", "credit"]):
+    elif any(k in pkg or k in name for k in ["pay", "alipay", "bank", "wallet", "finance", "credit", "支付", "支付宝", "银行", "理财", "钱包"]):
         return "finance_banking"
     return "browser_utility" if "via" in pkg else "general_custom"
+
+
+def classify_app_and_describe(
+    package_name: str,
+    app_name: str = "",
+    extra_context: str = ""
+) -> Dict[str, Any]:
+    """
+    通过大模型或离线确定性领域专家引擎，根据应用名称与包名特征智能推断其所属的四部委 39 类国标归属，
+    并自动生成一段精炼、严谨、符合法规主旨的 App 主营业务用途说明。
+    """
+    cfg = get_agent_config()
+    target_name = (app_name or "").strip()
+    target_pkg = (package_name or "").strip()
+    if not target_name and not target_pkg:
+        target_name = "Via 浏览器"
+        target_pkg = "mark.via"
+    elif not target_name:
+        target_name = target_pkg
+    elif not target_pkg:
+        target_pkg = target_name
+
+    # 1. 尝试调用真实大模型进行语义理解与分类（如果配置有效且非仅离线模式）
+    if cfg.get("enabled", True) and cfg.get("mode") != "offline_only" and cfg.get("api_key"):
+        try:
+            p_key = cfg.get("provider", "deepseek")
+            p_meta = DEFAULT_PROVIDERS.get(p_key, DEFAULT_PROVIDERS["custom"])
+            base_url = (cfg.get("base_url") or p_meta["base_url"]).rstrip("/")
+            model_name = cfg.get("model_name") or p_meta["model"]
+            api_key = cfg.get("api_key", "")
+
+            system_prompt = (
+                "你是国家移动互联网应用程序个人信息保护与数据安全合规专家。\n"
+                "请依据国家网信办、工信部、公安部、国家市场监督管理总局四部委联合印发的《常见类型移动互联网应用程序必要个人信息范围规定》（39类国标），"
+                "根据给定的 App 应用名称与包名，推断其最适用的法定业务类别，并生成一段精炼、严谨的主营业务用途说明（60-120字），"
+                "用于后续合规审计中的‘最小必要原则’因果溯源与合理性研判。\n\n"
+                "候选分类 key 列表如下（必须从以下 key 中选择其一）：\n"
+                "- browser_utility: 实用工具 (浏览器/下载/清理)\n"
+                "- navigation_travel: 地图导航与位置出行\n"
+                "- im_social: 即时通信与社交通讯\n"
+                "- ecommerce_life: 网上购物与综合电商\n"
+                "- camera_media: 拍摄美颜与音视频编辑\n"
+                "- mobile_game: 手机游戏与休闲娱乐\n"
+                "- finance_banking: 金融理财与网上银行\n"
+                "- general_custom: 其他 / 通用业务类别\n\n"
+                "请输出纯 JSON 格式：\n"
+                "{\n"
+                '  "category": "上述候选 key 之一",\n'
+                '  "confidence": 0.95,\n'
+                '  "reason": "分类依据简述",\n'
+                '  "description": "精炼的主营业务用途说明，阐明该应用核心功能及为何需要网络、存储等基本能力"\n'
+                "}"
+            )
+
+            user_msg = f"目标应用名称: {target_name}\n应用包名: {target_pkg}\n补充上下文: {extra_context}"
+
+            req_payload = {
+                "model": model_name,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_msg}
+                ],
+                "temperature": 0.2
+            }
+            if "deepseek" in p_key or "glm" in p_key:
+                req_payload["response_format"] = {"type": "json_object"}
+
+            req = urllib.request.Request(
+                f"{base_url}/chat/completions",
+                data=json.dumps(req_payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                    "User-Agent": "AppGuard/1.08"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                resp_json = json.loads(resp.read().decode("utf-8"))
+                reply_text = resp_json.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+                s_idx = reply_text.find("{")
+                e_idx = reply_text.rfind("}")
+                if s_idx != -1 and e_idx != -1:
+                    data = json.loads(reply_text[s_idx:e_idx+1])
+                    cat = data.get("category", "")
+                    if cat in GB_APP_CATEGORIES:
+                        cat_info = GB_APP_CATEGORIES[cat]
+                        return {
+                            "category": cat,
+                            "category_name": cat_info["name"],
+                            "law_ref": cat_info["law_ref"],
+                            "description": data.get("description") or cat_info["sample_description"],
+                            "confidence": float(data.get("confidence", 0.95)),
+                            "reason": data.get("reason", "大模型深度语义研判"),
+                            "source": "llm",
+                            "model": model_name
+                        }
+        except Exception:
+            pass
+
+    # 2. 本地离线确定性领域专家引擎 (0ms 兜底保障)
+    inferred_cat = infer_app_category(target_pkg, target_name)
+    cat_info = GB_APP_CATEGORIES.get(inferred_cat, GB_APP_CATEGORIES["general_custom"])
+
+    pkg_lower = target_pkg.lower()
+    name_lower = target_name.lower()
+    if "via" in pkg_lower or "via" in name_lower:
+        desc = "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
+        reason = "命中轻量浏览器核心特征"
+        confidence = 0.98
+    elif "xq" in pkg_lower or "象棋" in name_lower or "chess" in pkg_lower:
+        desc = "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，核心链路围绕游戏对弈，无需读取通讯录与麦克风。"
+        reason = "命中休闲棋牌对战游戏特征"
+        confidence = 0.98
+    elif "cainiao" in pkg_lower or "菜鸟" in name_lower:
+        desc = "综合型移动电商与智慧物流平台，提供快递包裹多端追踪、就近驿站自提通知及寄件履约服务。"
+        reason = "命中电商物流查件与自提服务特征"
+        confidence = 0.96
+    elif "pinduoduo" in pkg_lower or "拼多多" in name_lower:
+        desc = "综合型移动电商购物平台，提供商品选购、拼单优惠、在线支付与订单物流追踪功能，不含非明示剪贴板跨域追踪。"
+        reason = "命中综合电商与拼单选购特征"
+        confidence = 0.95
+    elif "alipay" in pkg_lower or "支付宝" in name_lower:
+        desc = "移动支付与综合数字金融生活平台，用于安全转账、扫码收付款、政务民生及生活缴费，需合规生物认证与交易安全风控。"
+        reason = "命中移动支付与金融理财特征"
+        confidence = 0.99
+    elif "musically" in pkg_lower or "tiktok" in pkg_lower or "douyin" in pkg_lower or "抖音" in name_lower:
+        desc = "短视频创作与社交分享平台，提供拍摄录制、滤镜特效渲染、即时互动与推荐播放服务，需合规调用相机与麦克风。"
+        reason = "命中音视频拍摄与特效创作特征"
+        confidence = 0.97
+    else:
+        desc = cat_info.get("sample_description", f"{target_name} 专用移动业务服务应用程序。")
+        reason = f"基于包名与应用名称语义规则匹配至【{cat_info['name']}】"
+        confidence = 0.91
+
+    return {
+        "category": inferred_cat,
+        "category_name": cat_info["name"],
+        "law_ref": cat_info["law_ref"],
+        "description": desc,
+        "confidence": confidence,
+        "reason": reason,
+        "source": "expert_engine",
+        "model": "内置专家引擎"
+    }
 
 
 class ComplianceAgent:
@@ -402,6 +654,14 @@ class ComplianceAgent:
                 if start_idx != -1 and end_idx != -1:
                     parsed = json.loads(reply_text[start_idx:end_idx+1])
                     
+                    eval_items = parsed.get("item_evaluations", [])
+                    for item in eval_items:
+                        if "adjusted_points" in item:
+                            try:
+                                item["adjusted_points"] = max(0, abs(int(item["adjusted_points"])))
+                            except (ValueError, TypeError):
+                                item["adjusted_points"] = 0
+
                     # 组装标准 Agent 输出对象
                     return {
                         "is_agent_enabled": True,
@@ -416,7 +676,7 @@ class ComplianceAgent:
                         "verdict_badge": parsed.get("verdict_badge", "EXEMPTION_GRANTED"),
                         "verdict_title": parsed.get("verdict_title", "经 Agent 场景上下文研判完成"),
                         "comprehensive_assessment": parsed.get("comprehensive_assessment", ""),
-                        "detailed_traces": parsed.get("item_evaluations", []),
+                        "detailed_traces": eval_items,
                         "regulatory_citations": [
                             "《中华人民共和国个人信息保护法》第五条（最小必要原则）、第十七条（告知义务）",
                             cat_info["law_ref"],

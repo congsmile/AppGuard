@@ -550,24 +550,29 @@ OFFICIAL_FRAMEWORKS = {
     "kotlinx": "KotlinX 协程扩展库"
 }
 
-def is_prefix_match(norm_path, prefix):
+def is_prefix_match(norm_path, prefix, is_sdk=False):
     p = prefix.strip("/")
     n = norm_path.strip("/")
+    # 严格顶层前缀匹配（杜绝命名空间伪装绕过，例如 com.example.androidx.Evil）
     if n == p or n.startswith(p + "/"):
         return True
-    if ("/" + p + "/") in ("/" + n + "/"):
-        return True
+    # 仅对商业第三方 SDK 允许前两段内的重定位子包匹配（如 shadow/com/pangle），官方框架严禁子串匹配
+    if is_sdk and ("/" + p + "/") in ("/" + n + "/"):
+        parts = n.split("/")
+        sub_prefix = "/".join(parts[:3])
+        if ("/" + p + "/") in ("/" + sub_prefix + "/"):
+            return True
     return False
 
 def identify_culprit(caller_class):
     norm = caller_class.strip("L;").replace(".", "/")
     # 1. 优先按路径段精确匹配 54 款商业第三方 SDK
     for prefix in sorted(KNOWN_SDKS.keys(), key=len, reverse=True):
-        if is_prefix_match(norm, prefix):
+        if is_prefix_match(norm, prefix, is_sdk=True):
             return KNOWN_SDKS[prefix]
-    # 2. 匹配 Google / AndroidX 官方系统兼容组件
+    # 2. 匹配 Google / AndroidX 官方系统兼容组件 (严格顶层前缀，严禁子串，防伪装推责)
     for prefix in sorted(OFFICIAL_FRAMEWORKS.keys(), key=len, reverse=True):
-        if is_prefix_match(norm, prefix):
+        if is_prefix_match(norm, prefix, is_sdk=False):
             return OFFICIAL_FRAMEWORKS[prefix]
     # 3. 宿主自研业务模块
     return "应用自身业务模块"
@@ -584,7 +589,7 @@ def is_benign_framework_call(caller_class, caller_method, target_api):
     # 检查是否属于官方系统兼容库/官方基础标准库
     is_official = False
     for prefix in OFFICIAL_FRAMEWORKS.keys():
-        if is_prefix_match(c, prefix):
+        if is_prefix_match(c, prefix, is_sdk=False):
             is_official = True
             break
             
@@ -831,7 +836,7 @@ def run_audit(apk_path):
 
     start_time = time.time()
     print(f"\n{'='*70}")
-    print(f"[*] 启动移动应用隐私合规自动化审计引擎 (AppGuard Audit Engine v1.0)")
+    print(f"[*] 启动移动应用隐私合规自动化审计引擎 (AppGuard Audit Engine v1.08)")
     print(f"[*] 四维加权分级评估模型 (WCI) · 12 大工信部专项红线与责任穿透")
     print(f"[*] 目标安装包: {os.path.abspath(apk_path)}")
     print(f"{'='*70}\n")

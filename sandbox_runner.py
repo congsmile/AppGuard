@@ -457,10 +457,12 @@ class AndroidDynamicSandbox:
                 evidence = f"端侧硬件沙箱在 {trigger_time} 捕获底层剪贴板访问 (距快照采样点 {t_val:.2f}s 前)"
             elif clipboard_log_time is not None:
                 trigger_time = f"T+{clipboard_log_time:.2f}s"
+                time_source = "logcat"
                 evidence = f"底层运行日志在 {trigger_time} 捕获目标应用调用 ClipboardManager.getPrimaryClip()"
             else:
-                trigger_time = f"T+{min(duration_seconds - 0.5, 0.85):.2f}s"
-                evidence = f"端侧硬件沙箱在监控窗口期捕获目标应用读取系统剪贴板"
+                trigger_time = "窗口期内"
+                time_source = "window_fallback"
+                evidence = f"端侧硬件探针在 {duration_seconds}s 监控窗口期内捕获剪贴板读取（时刻未精确归因）"
 
             raw_text = clip_item["raw"] if (clip_item and clip_item.get("raw")) else (clipboard_raw or "ClipboardService: getPrimaryClip accessed")
             timeline.append({
@@ -495,10 +497,12 @@ class AndroidDynamicSandbox:
                 evidence = f"端侧硬件沙箱在 {trigger_time} 捕获底层 TelephonyManager 硬件调用 (距快照采样点 {t_val:.2f}s 前)"
             elif telephony_log_time is not None:
                 trigger_time = f"T+{telephony_log_time:.2f}s"
+                time_source = "logcat"
                 evidence = f"底层运行日志在 {trigger_time} 捕获目标应用获取不可重置设备硬件标识 (IMEI/SN)"
             else:
-                trigger_time = f"T+{min(duration_seconds - 0.5, 0.95):.2f}s"
-                evidence = f"端侧硬件沙箱在监控窗口期捕获目标应用索取设备唯一硬件标识"
+                trigger_time = "窗口期内"
+                time_source = "window_fallback"
+                evidence = f"端侧硬件探针在 {duration_seconds}s 监控窗口期内捕获设备硬件标识读取（时刻未精确归因）"
 
             raw_text = phone_item["raw"] if (phone_item and phone_item.get("raw")) else (telephony_raw or "TelephonyRegistry: readPhoneState / getDeviceId")
             timeline.append({
@@ -521,7 +525,8 @@ class AndroidDynamicSandbox:
 
         # 3. 摇一摇广告与传感器滥用 (对齐工信部规则库 MIIT-04-SHAKE-SENSOR)
         if shake_detected:
-            trigger_time = f"T+{shake_log_time:.2f}s" if shake_log_time is not None else "T+1.10s"
+            trigger_time = f"T+{shake_log_time:.2f}s" if shake_log_time is not None else "窗口期内"
+            time_source = "logcat" if shake_log_time is not None else "window_fallback"
             raw_text = shake_raw or "SensorService: registerListener for ACCELEROMETER"
             timeline.append({
                 "time": trigger_time,
@@ -550,10 +555,12 @@ class AndroidDynamicSandbox:
                 evidence = f"端侧硬件沙箱在 {trigger_time} 捕获位置服务底层调用 (距快照采样点 {t_val:.2f}s 前)"
             elif location_log_time is not None:
                 trigger_time = f"T+{location_log_time:.2f}s"
+                time_source = "logcat"
                 evidence = f"底层运行日志在 {trigger_time} 捕获目标应用调用 LocationManager 索取经纬度"
             else:
-                trigger_time = f"T+{min(duration_seconds - 0.5, 2.1):.2f}s"
-                evidence = "动态监测到应用在前台或后台尝试索取定位数据"
+                trigger_time = "窗口期内"
+                time_source = "window_fallback"
+                evidence = f"端侧硬件探针在 {duration_seconds}s 监控窗口期内捕获定位服务底层调用（时刻未精确归因）"
 
             raw_text = loc_item["raw"] if (loc_item and loc_item.get("raw")) else (location_raw or "LocationManagerService: requestLocationUpdates")
             timeline.append({
@@ -585,10 +592,12 @@ class AndroidDynamicSandbox:
                 t_val = camera_item["time_seconds"]
                 calc_time = max(0.1, round(duration_seconds - t_val, 2))
                 trigger_time = f"T+{calc_time:.2f}s"
+                time_source = "appops"
                 evidence = f"端侧硬件沙箱在 {trigger_time} 捕获 CAMERA 调用 (距采样点 {t_val:.2f}s 前)"
             else:
-                trigger_time = f"T+{min(duration_seconds - 0.5, 2.5):.2f}s"
-                evidence = f"端侧硬件沙箱在 {trigger_time} 捕获麦克风或相机硬件捕获服务被激活"
+                trigger_time = "窗口期内"
+                time_source = "window_fallback"
+                evidence = f"端侧硬件探针在 {duration_seconds}s 监控窗口期内捕获录音或相机底层服务激活（时刻未精确归因）"
 
             timeline.append({
                 "time": trigger_time,
@@ -641,6 +650,27 @@ class AndroidDynamicSandbox:
             "verdict": "正常：沙箱安全退出",
             "raw": f"am force-stop {package_name} succeeded"
         })
+
+        # 严格按真实发生时刻升序排序（杜绝时序倒流与逆序穿帮）
+        def _timeline_sort_key(item):
+            t_str = str(item.get("time", ""))
+            m = re.search(r"T\+([\d\.]+)s?", t_str)
+            if m:
+                try:
+                    return float(m.group(1))
+                except ValueError:
+                    pass
+            if "0.05" in t_str:
+                return 0.05
+            if "0.45" in t_str:
+                return 0.45
+            if "2.00" in t_str:
+                return 2.00
+            if "窗口期" in t_str:
+                return duration_seconds * 0.5
+            return duration_seconds + 1.0
+
+        timeline.sort(key=_timeline_sort_key)
         
         # 计算动态合规综合评分
         total_deduct = sum(v["deduct"] for v in dynamic_violations)

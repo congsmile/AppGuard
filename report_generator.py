@@ -769,7 +769,7 @@ def generate_report(data, output_dir="outputs"):
         {findings_html if findings else '<div class="section-card" style="text-align:center;color:#10b981;font-weight:bold;">恭喜！未在目标应用中检出已知工信部红线违规调用。</div>'}
 
         <div class="footer">
-            <div>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · AppGuard 合规审计引擎 v1.0</div>
+            <div>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · AppGuard 合规审计引擎 v1.08</div>
             <div>中国国际大学生创新大赛 · 移动互联网隐私合规端云协同平台</div>
         </div>
     </div>

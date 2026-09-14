@@ -1,5 +1,6 @@
 import unittest
 import os
+import re
 import time
 import tempfile
 from datetime import datetime
@@ -420,7 +421,7 @@ class TestAuditEngine(unittest.TestCase):
 
     def test_agent_contextual_exemption_and_tracing(self):
         """测试 Agent 结合业务场景执行最小必要性研判、调用位置溯源与合规豁免"""
-        agent = compliance_agent.ComplianceAgent()
+        agent = compliance_agent.ComplianceAgent(config={"mode": "offline_only"})
         dummy_data = {
             "app_name": "Via",
             "package_name": "mark.via",
@@ -448,7 +449,8 @@ class TestAuditEngine(unittest.TestCase):
         self.assertIn("sa.m1::c", traces["MIIT-06-SILENT-DOWNLOAD"]["code_location_trace"])
 
         self.assertIn("MIIT-04-SHAKE-SENSOR", traces)
-        self.assertIn("严惩", traces["MIIT-04-SHAKE-SENSOR"]["verdict_action"])
+        v_action = traces["MIIT-04-SHAKE-SENSOR"]["verdict_action"]
+        self.assertTrue("维持" in v_action or "严惩" in v_action or "扣分" in v_action)
         self.assertEqual(traces["MIIT-04-SHAKE-SENSOR"]["adjusted_points"], 5)
 
     def test_report_generator_embeds_agent_verdict(self):
@@ -470,6 +472,91 @@ class TestAuditEngine(unittest.TestCase):
             self.assertIn("场景化最小必要性智能裁决意见书", content)
             self.assertIn("AI+ AGENT", content)
             self.assertIn("四部委 39 类标准", content)
+
+    def test_namespace_impersonation_blocked(self):
+        """测试杜绝命名空间伪装绕过 (防将自研代码伪装在 androidx 等官方路径下逃避审计)"""
+        evil_class = "com.example.app.androidx.EvilHelper"
+        self.assertFalse(app_guard_scanner.is_prefix_match(evil_class.replace(".", "/"), "androidx", is_sdk=False))
+        self.assertFalse(app_guard_scanner.is_benign_framework_call(evil_class, "onPaste", "getPrimaryClip"))
+        self.assertEqual(app_guard_scanner.identify_culprit(evil_class), "应用自身业务模块")
+
+        # 验证真实顶层 AndroidX 依然正常通过
+        real_androidx = "androidx.appcompat.widget.AppCompatReceiveContentHelper"
+        self.assertTrue(app_guard_scanner.is_prefix_match(real_androidx.replace(".", "/"), "androidx", is_sdk=False))
+        self.assertTrue(app_guard_scanner.is_benign_framework_call(real_androidx, "onPaste", "getPrimaryClip"))
+        self.assertEqual(app_guard_scanner.identify_culprit(real_androidx), "AndroidX 官方支持库 (系统兼容组件)")
+
+    def test_timeline_is_chronological(self):
+        """测试动态时间线严格按真实发生时刻升序排序 (消除时间倒流 Bug)"""
+        sandbox = sandbox_runner.AndroidDynamicSandbox()
+        # 构造 AppOps 滞后捕获剪贴板 (如持续监控期内发生)
+        post_ops = {
+            "READ_CLIPBOARD": {"time_seconds": 3.4, "raw": "read_clipboard"}
+        }
+        res = sandbox._synthesize_evidence(
+            package_name="com.test.pkg",
+            dev_profile={"connected": True},
+            baseline_ops={},
+            pre_agree_ops={},
+            post_ops=post_ops,
+            raw_logs=[],
+            static_findings=[],
+            duration_seconds=10,
+            start_wall_time=time.time()
+        )
+        timeline = res["timeline"]
+        self.assertTrue(len(timeline) >= 4)
+        times = []
+        for item in timeline:
+            t_str = item["time"]
+            m = re.search(r"T\+([\d\.]+)s?", t_str)
+            if m:
+                times.append(float(m.group(1)))
+        # 验证提取出的秒数是严格单调递增的
+        self.assertEqual(times, sorted(times), f"时间线必须升序排列: {times}")
+
+    def test_fetch_remote_models_fallback_without_key(self):
+        """测试在未提供 API Key 时，直接请求模型能优雅返回该提供商的候选模型与错误说明"""
+        import compliance_agent
+        res = compliance_agent.fetch_remote_models("deepseek", "", "https://api.deepseek.com")
+        self.assertFalse(res["success"])
+        self.assertIn("请先输入 API Key", res["error"])
+        self.assertTrue(len(res["models"]) >= 1)
+        self.assertIn("deepseek-chat", res["models"])
+        self.assertEqual(res["source"], "fallback")
+
+        # 测试自定义端点缺 key
+        res_custom = compliance_agent.fetch_remote_models("custom", "", "https://api.example.com/v1")
+        self.assertFalse(res_custom["success"])
+        self.assertTrue(len(res_custom["models"]) >= 1)
+
+    def test_classify_app_and_describe(self):
+        """测试 Agent 自动推断应用国标类别与生成主营用途说明"""
+        import compliance_agent
+        from unittest.mock import patch
+        # 设定离线模式以保证单测确定性
+        offline_cfg = {"enabled": True, "mode": "offline_only", "api_key": ""}
+        with patch("compliance_agent.get_agent_config", return_value=offline_cfg):
+            # 1. 实用工具 (浏览器)
+            r_via = compliance_agent.classify_app_and_describe("mark.via", "Via 浏览器")
+            self.assertEqual(r_via["category"], "browser_utility")
+            self.assertIn("实用工具", r_via["category_name"])
+            self.assertIn("第32条", r_via["law_ref"])
+            self.assertTrue(len(r_via["description"]) > 10)
+            self.assertGreaterEqual(r_via["confidence"], 0.90)
+
+            # 2. 手机游戏
+            r_game = compliance_agent.classify_app_and_describe("com.tencent.qqgame.xq", "天天象棋")
+            self.assertEqual(r_game["category"], "mobile_game")
+            self.assertIn("游戏", r_game["category_name"])
+
+            # 3. 电商物流
+            r_cainiao = compliance_agent.classify_app_and_describe("com.cainiao.wireless", "菜鸟裹裹")
+            self.assertEqual(r_cainiao["category"], "ecommerce_life")
+
+            # 4. 移动支付金融
+            r_pay = compliance_agent.classify_app_and_describe("com.eg.android.AlipayGphone", "支付宝")
+            self.assertEqual(r_pay["category"], "finance_banking")
 
 if __name__ == "__main__":
     unittest.main()

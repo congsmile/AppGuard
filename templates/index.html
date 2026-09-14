@@ -752,7 +752,7 @@
                         <span class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">AppGuard</span>
                         <span class="text-xs text-slate-300 dark:text-slate-700">/</span>
                         <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline">移动应用合规审计与端云协同分析系统</span>
-                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-white/10 font-bold">v1.0</span>
+                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-white/10 font-bold">v1.08</span>
                     </div>
                     <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center space-x-1.5 font-mono">
                         <span>《个人信息保护法》</span>
@@ -790,7 +790,7 @@
                 <button onclick="openAgentModal()" id="btnOpenAgent" class="px-3 py-1.5 rounded-full liquid-pill transition flex items-center space-x-1.5 interactive-btn cursor-pointer shadow-sm text-slate-800 dark:text-slate-100 hover:border-sky-500/50" title="配置合规审计智能体 (DeepSeek / Kimi / GLM / 自定义)">
                     <i class="fa-solid fa-microchip-ai text-sky-500 text-xs"></i>
                     <span class="text-xs font-semibold">配置 Agent</span>
-                    <span id="agentActiveBadge" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" title="智能体就绪"></span>
+                    <span id="agentActiveBadge" class="w-2 h-2 rounded-full bg-rose-500 inline-block animate-pulse" title="未配置大模型 API Key（已自动启用内置离线专家知识图谱兜底）"></span>
                 </button>
 
                 <!-- Apple 风格分段主题控制器 (Light / Dark / System) -->
@@ -906,6 +906,24 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 智能体辅助研判操作栏 (点击请求 Agent 自动分析类别与说明) -->
+                <div class="mt-3.5 pt-3 border-t border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div class="flex items-center space-x-2.5 flex-wrap gap-y-1.5">
+                        <button type="button" onclick="requestAgentClassifyApp()" id="btnAgentClassify" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/15 via-blue-500/15 to-indigo-500/15 hover:from-sky-500/25 hover:to-indigo-500/25 border border-sky-500/35 text-sky-700 dark:text-sky-300 text-xs font-semibold flex items-center space-x-1.5 transition interactive-btn shadow-sm" title="根据当前选中的目标应用/样本，由 Agent 深度推断四部委 39 类归属并自动生成主营用途说明">
+                            <i id="agentClassifyIcon" class="fa-solid fa-wand-magic-sparkles text-sky-500 text-xs"></i>
+                            <span id="agentClassifyBtnText">请求 Agent 自动分析类别和说明</span>
+                        </button>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                            <i class="fa-regular fa-compass text-sky-500 text-[11px]"></i>
+                            <span id="agentClassifyTargetHint">当前研判目标：Via 浏览器 (mark.via)</span>
+                        </span>
+                    </div>
+                    <div id="agentClassifyBadge" class="hidden text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold flex items-center space-x-1.5 shrink-0 shadow-sm">
+                        <i class="fa-solid fa-circle-check text-[10px]"></i>
+                        <span id="agentClassifyBadgeText">已智能匹配</span>
+                    </div>
+                </div>
             </div>
 
             <!-- 样本接入双通道 Bento 卡片 -->
@@ -972,6 +990,10 @@
                             <div class="w-full bg-slate-200 dark:bg-neutral-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
                                 <div id="uploadProgressBar" class="bg-sky-500 h-full w-0 transition-all duration-200"></div>
                             </div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center space-x-1.5 mt-2 pt-1.5 border-t border-slate-200/60 dark:border-white/5">
+                                <i class="fa-solid fa-circle-info text-sky-500 text-[10px] shrink-0"></i>
+                                <span>注：预估耗时仅为无 Agent 基础分析用时；若开启 Agent 研判，耗时取决于大模型推理与网络响应，无法提前确定。</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1027,6 +1049,10 @@
                                     <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 shrink-0 whitespace-nowrap">
                                         <i class="fa-solid fa-filter text-[9px] mr-0.5"></i> 靶向抽离 (DEX+清单)
                                     </div>
+                                </div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-start space-x-1.5 pt-1.5 border-t border-sky-500/15 dark:border-white/5 leading-normal">
+                                    <i class="fa-solid fa-circle-info text-sky-500 text-[10px] mt-0.5 shrink-0"></i>
+                                    <span><b>耗时说明</b>：预估时间仅为无 Agent 分析的常规机检耗时。若启用 Agent 场景化研判，耗时取决于所选大模型推理与网络，具体时间无法提前确认。</span>
                                 </div>
                             </div>
                             <!-- 快速点选预设对照组药丸 (暗黑模式纯深色背景) -->
@@ -1084,24 +1110,32 @@
                         </div>
                     </div>
                     <!-- 动态运行计时与预估耗时胶囊面板 -->
-                    <div id="auditRunningIndicator" class="hidden mt-4 p-3.5 rounded-2xl liquid-pill border border-sky-500/35 bg-sky-500/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-md transition-all">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="relative flex h-2.5 w-2.5">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
+                    <div id="auditRunningIndicator" class="hidden mt-4 p-3.5 rounded-2xl liquid-pill border border-sky-500/35 bg-sky-500/10 flex flex-col gap-2 text-xs shadow-md transition-all">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="relative flex h-2.5 w-2.5">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
+                                </div>
+                                <span class="font-bold text-sky-900 dark:text-sky-200" id="auditRunningStatusText">正在拉取并逆向反编译 DEX 字节码...</span>
                             </div>
-                            <span class="font-bold text-sky-900 dark:text-sky-200" id="auditRunningStatusText">正在拉取并逆向反编译 DEX 字节码...</span>
+                            <div class="flex items-center space-x-3 font-mono bg-white/60 dark:bg-black/30 px-3 py-1.5 rounded-xl border border-sky-500/20 shrink-0">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-slate-500 dark:text-slate-400 text-[11px]">正在运行:</span>
+                                    <span id="auditElapsedTime" class="font-bold text-sky-600 dark:text-sky-400 tabular-nums text-sm">00.0s</span>
+                                </div>
+                                <span class="text-slate-300 dark:text-white/20">|</span>
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-slate-500 dark:text-slate-400 text-[11px]">基准预估:</span>
+                                    <span id="auditEstTime" class="font-bold text-slate-900 dark:text-white tabular-nums text-sm">~12s</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-3 font-mono bg-white/60 dark:bg-black/30 px-3 py-1.5 rounded-xl border border-sky-500/20">
-                            <div class="flex items-center space-x-1.5">
-                                <span class="text-slate-500 dark:text-slate-400 text-[11px]">正在运行:</span>
-                                <span id="auditElapsedTime" class="font-bold text-sky-600 dark:text-sky-400 tabular-nums text-sm">00.0s</span>
-                            </div>
-                            <span class="text-slate-300 dark:text-white/20">|</span>
-                            <div class="flex items-center space-x-1.5">
-                                <span class="text-slate-500 dark:text-slate-400 text-[11px]">预估耗时:</span>
-                                <span id="auditEstTime" class="font-bold text-slate-900 dark:text-white tabular-nums text-sm">~12s</span>
-                            </div>
+                        <div class="w-full text-[10px] text-slate-500 dark:text-slate-400 pt-2 border-t border-sky-500/15 dark:border-white/5 flex items-center justify-between">
+                            <span class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-circle-info text-sky-500 text-[10px] shrink-0"></i>
+                                <span><b>耗时说明</b>：预估耗时仅限无 Agent 分析的基础机检；若开启 Agent 场景化分析，具体耗时与所选模型推理及网络状态有关，无法提前确定。</span>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1483,10 +1517,18 @@
                 sel.appendChild(opt);
                 sel.value = pkg;
             }
+            if (pkg === "mark.via") selectAppCategory("browser_utility");
+            else if (pkg === "com.tencent.qqgame.xq") selectAppCategory("mobile_game");
+            else if (pkg === "com.cainiao.wireless") selectAppCategory("ecommerce_life");
+            else if (pkg === "com.xunmeng.pinduoduo") selectAppCategory("ecommerce_life");
+            else if (pkg === "com.zhiliaoapp.musically") selectAppCategory("camera_media");
+            else if (pkg === "com.eg.android.AlipayGphone") selectAppCategory("finance_banking");
+
             updateSelectedAppMeta();
             const opt = sel.options[sel.selectedIndex];
             const name = opt ? (opt.dataset.name || pkg) : pkg;
             const estText = opt ? (opt.dataset.estText || "") : "";
+            updateClassifyTargetHint(name, pkg);
             showToast('已选中目标样本', `${name} · 预估耗时 ${estText}`, 'info');
         }
 
@@ -1591,6 +1633,7 @@
                 }
                 if (estEl) estEl.textContent = `${estText}${modeSuffix}`;
             }
+            updateClassifyTargetHint(name, pkg);
             
             if (btn && !btn.disabled) {
                 const summaryEl = document.getElementById('auditTargetSummary');
@@ -1799,7 +1842,7 @@
                             <div class="inline-flex rounded-xl p-0.5 bg-slate-200/80 dark:bg-neutral-800/90 text-[11px] font-medium border border-slate-300/50 dark:border-neutral-700/60 shadow-inner">
                                 <button id="modeQuickBtn" type="button" onclick="setAuditMode('quick')" class="px-2 py-0.5 rounded-lg transition-all ${currentAuditMode === 'quick' ? 'bg-white dark:bg-neutral-700 text-amber-600 dark:text-amber-400 shadow-sm font-semibold' : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'} flex items-center space-x-1">
                                     <i class="fa-solid fa-bolt text-amber-500 text-[9px]"></i>
-                                    <span>答辩速检</span>
+                                    <span>快速速检</span>
                                     <span id="modeQuickEst" class="opacity-75 font-mono text-[9px]">(~4s)</span>
                                 </button>
                                 <button id="modeDeepBtn" type="button" onclick="setAuditMode('deep')" class="px-2 py-0.5 rounded-lg transition-all ${currentAuditMode === 'deep' ? 'bg-white dark:bg-neutral-700 text-sky-600 dark:text-sky-300 shadow-sm font-semibold' : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'} flex items-center space-x-1">
@@ -1858,7 +1901,7 @@
                 if (dBtn) {
                     dBtn.className = "px-2.5 py-1 rounded-lg transition-all text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white flex items-center space-x-1";
                 }
-                showToast('已切换至【答辩路演速检模式】', '聚焦 classes1~3.dex 主入口与 SDK，约 25~35 秒出具现场体检报告', 'info');
+                showToast('已切换至【快速速检模式】', '聚焦 classes1~3.dex 主入口与 SDK，约 25~35 秒出具快速检测报告', 'info');
             } else {
                 if (dBtn) {
                     dBtn.className = "px-2.5 py-1 rounded-lg transition-all bg-white dark:bg-neutral-700 text-sky-600 dark:text-sky-300 shadow-sm font-semibold flex items-center space-x-1";
@@ -2099,6 +2142,7 @@
 
         async function loadChannelASample(filename, displayName) {
             try {
+                updateClassifyTargetHint(displayName, filename);
                 if (filename.includes("via")) {
                     selectAppCategory("browser_utility", "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。");
                 } else if (filename.includes("xq") || displayName.includes("象棋")) {
@@ -2151,12 +2195,17 @@
             
            logConsole(`收到上传文件: ${file.name} (全包 ${sizeMb.toFixed(2)} MB · 待审载荷 ~${estPayload} MB · 模式: ${currentAuditType})`);
            setPipelineStep(1);
+           updateClassifyTargetHint(file.name, '');
            showToast('开始分析本地 APK', `${file.name} · 审计模式: ${currentAuditType.toUpperCase()} · 预估 ${estText}`, 'info');
            
            const formData = new FormData();
             formData.append("file", file);
             formData.append("audit_type", currentAuditType);
             formData.append("mode", currentAuditMode);
+            const catSel = document.getElementById('appCategorySelect');
+            const descInput = document.getElementById('appDescriptionInput');
+            formData.append("app_category", catSel ? catSel.value : 'general_custom');
+            formData.append("app_description", descInput ? descInput.value.trim() : '');
             try {
                 pBar.style.width = "75%";
                 setPipelineStep(2);
@@ -2240,14 +2289,37 @@
             }
             
             try {
+                const catSel = document.getElementById('appCategorySelect');
+                const descInput = document.getElementById('appDescriptionInput');
+                const appCat = catSel ? catSel.value : 'general_custom';
+                const appDesc = descInput ? descInput.value.trim() : '';
+
                 let endpoint = "/api/pull_and_scan";
-                let body = { package: pkg, mode: currentAuditMode, audit_type: currentAuditType };
+                let body = { 
+                    package: pkg, 
+                    mode: currentAuditMode, 
+                    audit_type: currentAuditType,
+                    app_category: appCat,
+                    app_description: appDesc
+                };
                 if (currentAuditType === 'static' && pkg === "mark.via") {
                     endpoint = "/api/scan_local";
-                    body = { apk_path: "work/test_via.apk", mode: currentAuditMode, audit_type: "static" };
+                    body = { 
+                        apk_path: "work/test_via.apk", 
+                        mode: currentAuditMode, 
+                        audit_type: "static",
+                        app_category: appCat,
+                        app_description: appDesc
+                    };
                 } else if (currentAuditType === 'dynamic') {
                     endpoint = "/api/run_dynamic_sandbox";
-                    body = { package: pkg, duration: 5, simulate_motion: true };
+                    body = { 
+                        package: pkg, 
+                        duration: 5, 
+                        simulate_motion: true,
+                        app_category: appCat,
+                        app_description: appDesc
+                    };
                 }
                 
                 setPipelineStep(2);
@@ -3738,6 +3810,584 @@
             }, { passive: true });
         }
 
+        // ==========================================
+        // 智能体 (Agent) 与四部委 39 类品类联动核心逻辑
+        // ==========================================
+        const CATEGORY_METAS = {
+            "browser_utility": {
+                "law_ref": "四部委《规定》第32条：实用工具类，无须个人信息即可使用基本功能服务",
+                "sample": "极简轻量级移动网页浏览器，核心功能为网页浏览、书签同步和网络文件下载，支持剪贴板网址智能识别搜索，不包含广告商业变现链路。"
+            },
+            "navigation_travel": {
+                "law_ref": "四部委《规定》第1条：地图导航类，必要信息为经纬度位置信息、出发地、到达地",
+                "sample": "高精度电子地图与智能路线导航应用，提供实时路线规划、路况提醒与周边生活检索服务。"
+            },
+            "im_social": {
+                "law_ref": "四部委《规定》第3条：即时通信类，必要信息为注册用户移动电话号码、账号与好友列表",
+                "sample": "支持文字、语音、实时音视频通讯与朋友圈动态分享的即时社交软件。"
+            },
+            "ecommerce_life": {
+                "law_ref": "四部委《规定》第4条：网上购物类，必要信息为购买人姓名、送货地址、联系电话、支付信息",
+                "sample": "综合型移动电商购物平台，提供商品选购、智能搜索、在线支付与订单物流追踪功能。"
+            },
+            "mobile_game": {
+                "law_ref": "四部委《规定》第22条：网络游戏类，基本功能为提供游戏产品服务，必要信息为实名认证身份信息",
+                "sample": "休闲棋牌策略对战类手机游戏，提供在线联机对弈、残局闯关与棋谱复盘功能，无需麦克风与通讯录。"
+            },
+            "camera_media": {
+                "law_ref": "四部委《规定》第18条：拍摄美颜类，无须个人信息即可使用基本功能服务",
+                "sample": "专业级手机滤镜相机与图片特效后期处理工具，提供实时美颜滤镜与海报排版功能。"
+            },
+            "finance_banking": {
+                "law_ref": "四部委《规定》第10条：网络支付与理财类，必要信息为实名身份、银行卡信息与验证手机号",
+                "sample": "提供移动支付、生活缴费、账户转账及稳健理财服务的综合金融服务客户端，需人脸生物识别与安全风控。"
+            },
+            "general_custom": {
+                "law_ref": "《个人信息保护法》第六条：收集个人信息应当限于实现处理目的的最小范围，不得过度收集",
+                "sample": "面向移动终端的专用业务服务应用程序。"
+            }
+        };
+
+        let currentAgentConfig = null;
+        let agentProviders = {
+            "deepseek": {
+                "name": "DeepSeek (深度求索)",
+                "base_url": "https://api.deepseek.com",
+                "model": "deepseek-chat",
+                "doc_url": "https://platform.deepseek.com"
+            },
+            "kimi": {
+                "name": "Kimi (Moonshot AI)",
+                "base_url": "https://api.moonshot.cn/v1",
+                "model": "moonshot-v1-8k",
+                "doc_url": "https://platform.moonshot.cn"
+            },
+            "glm": {
+                "name": "智谱 GLM (BigModel)",
+                "base_url": "https://open.bigmodel.cn/api/paas/v4",
+                "model": "glm-4-flash",
+                "doc_url": "https://open.bigmodel.cn"
+            },
+            "custom": {
+                "name": "自定义 (OpenAI 兼容协议)",
+                "base_url": "",
+                "model": "",
+                "doc_url": ""
+            }
+        };
+        let currentSelectedProvider = "deepseek";
+
+        function updateAgentStatusBadge(hasKey, providerName = '') {
+            const badge = document.getElementById('agentActiveBadge');
+            const btn = document.getElementById('btnOpenAgent');
+            if (!badge) return;
+            if (hasKey) {
+                badge.className = 'w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse';
+                badge.title = `在线大模型已就绪 (${providerName || '已配置Key'})`;
+                if (btn) btn.title = `智能体在线真实大模型已就绪 · ${providerName || '已配置Key'}`;
+            } else {
+                badge.className = 'w-2 h-2 rounded-full bg-rose-500 inline-block animate-pulse';
+                badge.title = '未配置大模型 API Key（已自动启用内置离线专家知识图谱兜底）';
+                if (btn) btn.title = '未配置大模型 API Key · 点击配置在线大模型（或使用内置离线专家）';
+            }
+        }
+
+        async function initAgentConfig() {
+            try {
+                const res = await fetch('/api/agent_config');
+                const data = await res.json();
+                if (data.success && data.config) {
+                    currentAgentConfig = data.config;
+                    if (data.providers) {
+                        agentProviders = data.providers;
+                    }
+                    updateAgentStatusBadge(data.config.has_key, data.config.provider ? data.config.provider.toUpperCase() : '');
+                    applyAgentConfigToUI(data.config);
+                } else {
+                    updateAgentStatusBadge(false);
+                }
+            } catch (e) {
+                console.warn("Failed to load agent config:", e);
+                updateAgentStatusBadge(false);
+            }
+        }
+
+        async function fetchModelsForCurrentKey(isManual = false) {
+            const keyInput = document.getElementById('agentApiKeyInput');
+            const urlInput = document.getElementById('agentBaseUrlInput');
+            const modelInput = document.getElementById('agentModelInput');
+            const modelSelect = document.getElementById('agentModelSelect');
+            const modelSelectContainer = document.getElementById('modelSelectContainer');
+            const datalist = document.getElementById('agentModelDatalist');
+            const btn = document.getElementById('btnFetchModels');
+            const btnIcon = document.getElementById('fetchModelsIcon');
+            const btnText = document.getElementById('fetchModelsBtnText');
+            const badge = document.getElementById('modelFetchBadge');
+            const countText = document.getElementById('modelCountText');
+            const hintText = document.getElementById('modelStatusHint');
+
+            const apiKey = keyInput ? keyInput.value.trim() : '';
+            const baseUrl = urlInput ? urlInput.value.trim() : '';
+            const provider = currentSelectedProvider || 'deepseek';
+
+            const hasExistingKey = currentAgentConfig && currentAgentConfig.provider === provider && currentAgentConfig.has_key;
+            if (!apiKey && !hasExistingKey) {
+                if (isManual) {
+                    showToast('请先输入 API Key', '需要 API Key 才能直接向端点请求其支持的模型列表', 'warning');
+                }
+                if (hintText) hintText.textContent = '请先输入 API Key 后再拉取';
+                return;
+            }
+
+            if (btn) btn.disabled = true;
+            if (btnIcon) btnIcon.className = 'fa-solid fa-spinner fa-spin text-[10px]';
+            if (btnText) btnText.textContent = '请求模型中...';
+            if (hintText) hintText.textContent = '正在通过该 Key 检索可用模型列表...';
+
+            try {
+                const res = await fetch('/api/agent_models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: provider,
+                        api_key: apiKey,
+                        base_url: baseUrl
+                    })
+                });
+                const data = await res.json();
+
+                if (data && data.models && data.models.length > 0) {
+                    if (modelSelect) {
+                        modelSelect.innerHTML = '<option value="">-- 选择该 Key 可用模型 --</option>';
+                        data.models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m;
+                            opt.textContent = m;
+                            modelSelect.appendChild(opt);
+                        });
+                        const customOpt = document.createElement('option');
+                        customOpt.value = '__custom__';
+                        customOpt.textContent = '✍️ 手动输入其它模型名称...';
+                        modelSelect.appendChild(customOpt);
+
+                        // 成功拉取到模型时，展示精美的下拉选择器作为主控件，隐藏手输框
+                        modelSelect.classList.remove('hidden');
+                        if (modelInput) modelInput.classList.add('hidden');
+                        const toggleBtn = document.getElementById('btnToggleModelMode');
+                        if (toggleBtn) {
+                            toggleBtn.classList.remove('hidden');
+                            toggleBtn.textContent = '手输';
+                        }
+                    }
+
+                    if (datalist) {
+                        datalist.innerHTML = '';
+                        data.models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m;
+                            datalist.appendChild(opt);
+                        });
+                    }
+
+                    let currentVal = modelInput ? modelInput.value.trim() : '';
+                    let targetModel = currentVal;
+                    if (!targetModel || !data.models.includes(targetModel)) {
+                        targetModel = data.default_model || data.models[0];
+                    }
+
+                    if (modelInput) modelInput.value = targetModel;
+                    if (modelSelect) modelSelect.value = targetModel;
+
+                    if (badge) {
+                        badge.textContent = data.source === 'remote' ? '已获取该Key模型' : '备选常用模型';
+                        badge.classList.remove('hidden');
+                    }
+                    if (countText) countText.textContent = `共 ${data.models.length} 个模型`;
+                    if (hintText) hintText.textContent = data.source === 'remote' ? '已直接从 API Key 获取模型列表，可点选' : '端点未提供 models 接口，已提供常用模型';
+
+                    if (isManual) {
+                        showToast(data.success ? '模型请求成功' : '已填充备选模型', data.message || `获取到 ${data.models.length} 个模型`, data.success ? 'success' : 'info');
+                    }
+                } else {
+                    if (isManual) showToast('拉取模型失败', data.error || '未获取到模型', 'error');
+                    if (hintText) hintText.textContent = `拉取失败: ${data.error || '未获取到模型'}`;
+                }
+            } catch (e) {
+                if (isManual) showToast('请求异常', e.message, 'error');
+                if (hintText) hintText.textContent = `请求失败: ${e.message}`;
+            } finally {
+                if (btn) btn.disabled = false;
+                if (btnIcon) btnIcon.className = 'fa-solid fa-cloud-arrow-down text-[10px]';
+                if (btnText) btnText.textContent = '请求该 Key 的模型';
+            }
+        }
+
+        function toggleModelInputMode() {
+            const modelSelect = document.getElementById('agentModelSelect');
+            const modelInput = document.getElementById('agentModelInput');
+            const toggleBtn = document.getElementById('btnToggleModelMode');
+            if (!modelSelect || !modelInput) return;
+
+            if (modelInput.classList.contains('hidden')) {
+                modelSelect.classList.add('hidden');
+                modelInput.classList.remove('hidden');
+                modelInput.focus();
+                if (toggleBtn) toggleBtn.textContent = '下拉';
+            } else {
+                modelInput.classList.add('hidden');
+                modelSelect.classList.remove('hidden');
+                if (toggleBtn) toggleBtn.textContent = '手输';
+            }
+        }
+
+        function onAgentModelSelectChanged(val) {
+            if (!val) return;
+            const modelInput = document.getElementById('agentModelInput');
+            const modelSelect = document.getElementById('agentModelSelect');
+            const toggleBtn = document.getElementById('btnToggleModelMode');
+
+            if (val === '__custom__') {
+                if (modelSelect) modelSelect.classList.add('hidden');
+                if (modelInput) {
+                    modelInput.classList.remove('hidden');
+                    modelInput.focus();
+                }
+                if (toggleBtn) toggleBtn.textContent = '下拉';
+                return;
+            }
+            if (modelInput) {
+                modelInput.value = val;
+            }
+        }
+
+        function applyAgentConfigToUI(cfg) {
+            if (!cfg) return;
+            const p = cfg.provider || 'deepseek';
+            selectAgentProvider(p, false);
+
+            const keyInput = document.getElementById('agentApiKeyInput');
+            const urlInput = document.getElementById('agentBaseUrlInput');
+            const modelInput = document.getElementById('agentModelInput');
+
+            if (keyInput) {
+                keyInput.value = cfg.api_key_masked || cfg.api_key || '';
+            }
+            if (urlInput && cfg.base_url) {
+                urlInput.value = cfg.base_url;
+            }
+            if (modelInput && cfg.model_name) {
+                modelInput.value = cfg.model_name;
+            }
+
+            const mode = cfg.mode || 'auto';
+            const radio = document.querySelector(`input[name="agentMode"][value="${mode}"]`);
+            if (radio) radio.checked = true;
+
+            if (cfg.has_key) {
+                fetchModelsForCurrentKey(false);
+            }
+        }
+
+        function selectAgentProvider(key, updateInputs = true) {
+            currentSelectedProvider = key;
+            const allProviders = ['deepseek', 'kimi', 'glm', 'custom'];
+            allProviders.forEach(p => {
+                const tab = document.getElementById(`tab-provider-${p}`);
+                if (!tab) return;
+                if (p === key) {
+                    tab.className = "p-2.5 rounded-2xl border text-center transition interactive-btn flex flex-col items-center justify-center space-y-1 border-sky-500 bg-sky-500/15 text-sky-600 dark:text-sky-300 shadow-sm ring-1 ring-sky-500/30";
+                } else {
+                    tab.className = "p-2.5 rounded-2xl border text-center transition interactive-btn flex flex-col items-center justify-center space-y-1 border-slate-200 dark:border-white/10 bg-white/40 dark:bg-black/20 text-slate-700 dark:text-slate-300 opacity-70 hover:opacity-100";
+                }
+            });
+
+            const docLink = document.getElementById('providerDocLink');
+            const pMeta = agentProviders[key];
+            if (docLink && pMeta) {
+                if (pMeta.doc_url) {
+                    docLink.href = pMeta.doc_url;
+                    docLink.textContent = `获取 ${pMeta.name.split(' ')[0]} API Key & 文档`;
+                    docLink.classList.remove('hidden');
+                } else {
+                    docLink.classList.add('hidden');
+                }
+            }
+
+            if (updateInputs && pMeta) {
+                const urlInput = document.getElementById('agentBaseUrlInput');
+                const modelInput = document.getElementById('agentModelInput');
+                const keyInput = document.getElementById('agentApiKeyInput');
+
+                if (urlInput) {
+                    urlInput.placeholder = pMeta.base_url || 'https://api.example.com/v1';
+                    urlInput.value = pMeta.base_url || '';
+                }
+                if (modelInput) {
+                    modelInput.placeholder = pMeta.model || 'deepseek-chat / 自定义模型名称';
+                    modelInput.value = pMeta.model || '';
+                }
+                if (keyInput) {
+                    if (currentAgentConfig && currentAgentConfig.provider === key && currentAgentConfig.has_key) {
+                        keyInput.value = currentAgentConfig.api_key_masked || '';
+                    } else {
+                        keyInput.value = '';
+                    }
+                }
+            }
+
+            const modelSelect = document.getElementById('agentModelSelect');
+            const modelInput = document.getElementById('agentModelInput');
+            const toggleBtn = document.getElementById('btnToggleModelMode');
+            const badge = document.getElementById('modelFetchBadge');
+            const countText = document.getElementById('modelCountText');
+            if (currentAgentConfig && currentAgentConfig.provider === key && currentAgentConfig.has_key) {
+                fetchModelsForCurrentKey(false);
+            } else {
+                if (modelSelect) modelSelect.classList.add('hidden');
+                if (modelInput) modelInput.classList.remove('hidden');
+                if (toggleBtn) toggleBtn.classList.add('hidden');
+                if (badge) badge.classList.add('hidden');
+                if (countText) countText.textContent = '';
+                const hintText = document.getElementById('modelStatusHint');
+                if (hintText) hintText.textContent = '输入 Key 后点击右上角直接请求模型';
+            }
+
+            const testStatus = document.getElementById('agentTestStatus');
+            if (testStatus) {
+                testStatus.innerHTML = '';
+                testStatus.classList.add('hidden');
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('agentApiKeyInput');
+            const icon = document.getElementById('apiKeyEyeIcon');
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-regular fa-eye';
+            }
+        }
+
+        function openAgentModal() {
+            const modal = document.getElementById('agentModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (!currentAgentConfig) {
+                initAgentConfig();
+            } else {
+                applyAgentConfigToUI(currentAgentConfig);
+            }
+        }
+
+        function closeAgentModal() {
+            const modal = document.getElementById('agentModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function testAgentConnection() {
+            const statusEl = document.getElementById('agentTestStatus');
+            const btn = document.getElementById('btnTestAgent');
+            const apiKey = document.getElementById('agentApiKeyInput').value.trim();
+            const baseUrl = document.getElementById('agentBaseUrlInput').value.trim();
+            const modelName = document.getElementById('agentModelInput').value.trim();
+
+            if (!apiKey && (!currentAgentConfig || !currentAgentConfig.has_key)) {
+                statusEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+                statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> 请先输入 API Key 再进行测试';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            statusEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20';
+            statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> 正在向远程模型端点发起探针握手...';
+            statusEl.classList.remove('hidden');
+
+            if (btn) btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/agent_test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: currentSelectedProvider,
+                        api_key: apiKey,
+                        base_url: baseUrl,
+                        model_name: modelName
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    statusEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> ${escapeHtml(data.message)} (${data.latency_ms}ms)`;
+                    showToast('Agent 连通性测试成功', `${data.provider} 握手正常，延迟 ${data.latency_ms}ms`, 'success');
+                } else {
+                    statusEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i> 连通失败: ${escapeHtml(data.error || '未知网络错误')}`;
+                    showToast('Agent 测试失败', data.error || '连接超时或鉴权失败', 'error');
+                }
+            } catch (e) {
+                statusEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i> 请求异常: ${escapeHtml(e.message)}`;
+                showToast('请求异常', e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function saveAgentConfig() {
+            const btn = document.getElementById('btnSaveAgent');
+            const apiKey = document.getElementById('agentApiKeyInput').value.trim();
+            const baseUrl = document.getElementById('agentBaseUrlInput').value.trim();
+            const modelName = document.getElementById('agentModelInput').value.trim();
+            const modeEl = document.querySelector('input[name="agentMode"]:checked');
+            const mode = modeEl ? modeEl.value : 'auto';
+
+            if (btn) btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/agent_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: currentSelectedProvider,
+                        api_key: apiKey,
+                        base_url: baseUrl,
+                        model_name: modelName,
+                        mode: mode,
+                        enabled: true
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('配置已保存', '合规审计智能体引擎参数已生效', 'success');
+                    await initAgentConfig();
+                    closeAgentModal();
+                } else {
+                    showToast('保存失败', data.error || '配置未能持久化', 'error');
+                }
+            } catch (e) {
+                showToast('保存异常', e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function onCategoryChanged() {
+            const sel = document.getElementById('appCategorySelect');
+            const lawEl = document.getElementById('catLawRef');
+            const descInput = document.getElementById('appDescriptionInput');
+            if (!sel) return;
+            const cat = sel.value;
+            const meta = CATEGORY_METAS[cat] || CATEGORY_METAS['general_custom'];
+            if (lawEl && meta) {
+                lawEl.textContent = meta.law_ref;
+            }
+            if (descInput && meta) {
+                descInput.value = meta.sample;
+            }
+        }
+
+        function resetDefaultDescription() {
+            onCategoryChanged();
+            showToast('已填入品类预设', '已根据四部委 39 类国标填入推荐业务用途说明', 'info');
+        }
+
+        function selectAppCategory(catKey, customDesc = '') {
+            const sel = document.getElementById('appCategorySelect');
+            if (sel) {
+                sel.value = catKey;
+            }
+            const lawEl = document.getElementById('catLawRef');
+            const descInput = document.getElementById('appDescriptionInput');
+            const meta = CATEGORY_METAS[catKey] || CATEGORY_METAS['general_custom'];
+            if (lawEl && meta) {
+                lawEl.textContent = meta.law_ref;
+            }
+            if (descInput) {
+                descInput.value = customDesc || (meta ? meta.sample : '');
+            }
+        }
+
+        function updateClassifyTargetHint(name, pkg) {
+            const hint = document.getElementById('agentClassifyTargetHint');
+            if (hint) {
+                hint.textContent = `当前研判目标：${name || '未知应用'}${pkg && pkg !== name ? ' (' + pkg + ')' : ''}`;
+            }
+        }
+
+        async function requestAgentClassifyApp() {
+            const btn = document.getElementById('btnAgentClassify');
+            const icon = document.getElementById('agentClassifyIcon');
+            const text = document.getElementById('agentClassifyBtnText');
+            const badge = document.getElementById('agentClassifyBadge');
+            const badgeText = document.getElementById('agentClassifyBadgeText');
+
+            let targetPkg = '';
+            let targetName = '';
+
+            // 优先检查真机/演练样本下拉框
+            const sel = document.getElementById('deviceAppSelector');
+            if (sel && !sel.disabled && sel.value) {
+                targetPkg = sel.value;
+                const opt = sel.options[sel.selectedIndex];
+                targetName = opt ? (opt.dataset.name || opt.textContent.split(' (')[0]) : targetPkg;
+            }
+
+            // 检查通道 A 本地选取/拖入的文件
+            const fileNameEl = document.getElementById('fileName');
+            const infoBox = document.getElementById('fileUploadInfo');
+            if (infoBox && !infoBox.classList.contains('hidden') && fileNameEl && fileNameEl.textContent && fileNameEl.textContent !== '未选择文件') {
+                targetName = fileNameEl.textContent;
+            }
+
+            // 兜底默认值
+            if (!targetPkg && !targetName) {
+                targetPkg = 'mark.via';
+                targetName = 'Via 浏览器';
+            }
+
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = 'fa-solid fa-spinner fa-spin text-sky-500 text-xs';
+            if (text) text.textContent = 'Agent 正在分析业务类别与用途...';
+
+            try {
+                const res = await fetch('/api/agent_classify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package_name: targetPkg,
+                        app_name: targetName
+                    })
+                });
+                const resp = await res.json();
+                if (resp.success && resp.data) {
+                    const d = resp.data;
+                    selectAppCategory(d.category, d.description);
+                    if (badge && badgeText) {
+                        badge.classList.remove('hidden');
+                        badgeText.textContent = `已推断: ${d.category_name} (${(d.confidence * 100).toFixed(0)}%) · ${d.model || 'Agent'}`;
+                    }
+                    showToast('Agent 研判完成', `已将 [${targetName}] 归为【${d.category_name}】并生成主营用途说明`, 'success');
+                    logConsole(`[+] Agent 智能推断完成: [${targetName}] ➔ ${d.category_name} (${d.reason})`, true);
+                } else {
+                    showToast('分析失败', resp.error || '无法推断应用品类', 'warning');
+                }
+            } catch (e) {
+                showToast('请求异常', e.message, 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+                if (icon) icon.className = 'fa-solid fa-wand-magic-sparkles text-sky-500 text-xs';
+                if (text) text.textContent = '请求 Agent 自动分析类别和说明';
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('appguard_theme') || 'system';
             applyThemeState(savedTheme);
@@ -3746,12 +4396,52 @@
             clearPreviousAuditRecords(true, false);
             loadDeviceAppsList();
             initSpotlightEffects();
+            initAgentConfig();
+            onCategoryChanged();
+
+            // ESC 键关闭 Modal
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeAgentModal();
+                }
+            });
+
+            // 点击背景遮罩关闭 Modal
+            const agentModalEl = document.getElementById('agentModal');
+            if (agentModalEl) {
+                agentModalEl.addEventListener('click', (e) => {
+                    if (e.target === agentModalEl) {
+                        closeAgentModal();
+                    }
+                });
+            }
+
+            // 监听 API Key 与 Base URL 变动，自动请求可用模型
+            const keyInputEl = document.getElementById('agentApiKeyInput');
+            if (keyInputEl) {
+                keyInputEl.addEventListener('blur', () => {
+                    const val = keyInputEl.value.trim();
+                    if (val && !val.includes('****') && val.length > 5) {
+                        fetchModelsForCurrentKey(false);
+                    }
+                });
+                keyInputEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        fetchModelsForCurrentKey(true);
+                    }
+                });
+            }
+
+            if (window.location.search.includes('open_agent=1')) {
+                setTimeout(() => openAgentModal(), 100);
+            }
         });
     </script>
 
-    <!-- 智能体配置中心 Modal (Apple 液态玻璃模态框) -->
-    <div id="agentModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md transition-all">
-        <div class="glass-card rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-sky-500/30 relative max-h-[92vh] overflow-y-auto space-y-5">
+    <!-- 智能体配置中心 Modal (Apple 液态玻璃模态框 · 绝对水平与垂直居中) -->
+    <div id="agentModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-md transition-all">
+        <div class="glass-card rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-sky-500/30 relative max-h-[90vh] overflow-y-auto space-y-4 my-auto mx-auto">
             <!-- Modal 顶部标题栏 -->
             <div class="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-3.5">
                 <div class="flex items-center space-x-3">
@@ -3817,8 +4507,30 @@
                         <input id="agentBaseUrlInput" type="text" placeholder="https://api.deepseek.com" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Model 模型名称：</label>
-                        <input id="agentModelInput" type="text" placeholder="deepseek-chat" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                                <span>Model 模型名称：</span>
+                                <span id="modelFetchBadge" class="hidden text-[9px] font-mono px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold">已同步Key</span>
+                            </label>
+                            <div class="flex items-center space-x-1.5">
+                                <button type="button" onclick="toggleModelInputMode()" id="btnToggleModelMode" class="hidden text-[10px] text-slate-500 dark:text-slate-400 hover:text-sky-500 transition" title="在下拉选择与手动输入之间切换">手输</button>
+                                <button type="button" onclick="fetchModelsForCurrentKey(true)" id="btnFetchModels" class="text-[10px] text-sky-500 hover:text-sky-600 dark:text-sky-400 font-semibold flex items-center space-x-1 px-1.5 py-0.5 rounded-lg hover:bg-sky-500/10 transition border border-sky-500/20 active:scale-95" title="使用当前 API Key 直接向端点请求获取可用模型">
+                                    <i id="fetchModelsIcon" class="fa-solid fa-cloud-arrow-down text-[10px]"></i>
+                                    <span id="fetchModelsBtnText">请求该 Key 的模型</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <select id="agentModelSelect" onchange="onAgentModelSelectChanged(this.value)" class="hidden w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-sky-500/40 focus:outline-none focus:border-sky-500 transition cursor-pointer bg-sky-500/5 dark:bg-sky-500/10">
+                                <option value="">-- 选择该 Key 可用模型 --</option>
+                            </select>
+                            <input id="agentModelInput" type="text" list="agentModelDatalist" placeholder="deepseek-chat / 自定义模型名称" class="w-full px-3 py-2 rounded-xl inner-subcard text-xs font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 focus:outline-none focus:border-sky-500 transition">
+                            <datalist id="agentModelDatalist"></datalist>
+                        </div>
+                        <div class="text-[10px] text-slate-400 dark:text-slate-500 flex items-center justify-between truncate h-4">
+                            <span id="modelStatusHint" class="truncate">输入 Key 后点击右上角直接请求模型</span>
+                            <span id="modelCountText" class="font-mono text-sky-500 font-semibold shrink-0 ml-1"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -3842,18 +4554,6 @@
 
                 <!-- 连通性测试状态展示 -->
                 <div id="agentTestStatus" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
-            </div>
-
-            <!-- 底层技术创新说明卡片 -->
-            <div class="p-3.5 rounded-2xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed space-y-1">
-                <div class="font-bold text-sky-800 dark:text-sky-300 flex items-center space-x-1.5">
-                    <i class="fa-solid fa-lightbulb text-amber-500"></i>
-                    <span>大赛答辩与双引擎保障：</span>
-                </div>
-                <div>
-                    ① <strong>场景化最小必要性原则</strong>：智能体依据国家四部委《常见类型移动互联网应用程序必要个人信息范围规定》(39类国标)，结合 DEX 字节码调用位置精确剖析调用意图，对浏览器下载、前台粘贴等主营业务给予合规豁免。<br>
-                    ② <strong>离线专家兜底</strong>：现场演示若断网或无 Key，系统瞬间启用确定性领域知识图谱引擎，0ms 稳定输出结构化裁决意见书。
-                </div>
             </div>
 
             <!-- 底部操作按钮 -->
